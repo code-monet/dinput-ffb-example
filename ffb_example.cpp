@@ -313,6 +313,7 @@ int main() {
       return 1;
     } else {
       hr = effectInterface->Start(1, 0);
+      effectInterface->SetParameters(&effect, 0);
       if (!CheckDInputResult(hr, "Start")) {
         return 1;
       }

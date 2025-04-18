@@ -275,7 +275,8 @@ int main() {
   }
 
   hr = directInput->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumDevicesCallback,
-                                &forceFeedbackDevices, DIEDFL_ATTACHEDONLY);
+                                &forceFeedbackDevices,
+                                DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
   if (!CheckDInputResult(hr, "EnumDevices")) {
     directInput->Release();
     return 1;

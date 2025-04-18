@@ -18,6 +18,7 @@ const auto kEffectGuid = GUID_Sine;
 // const auto kEffectGuid = GUID_Triangle;
 
 const int kNumUpdates = 1000;  // The number of times to update the effect.
+const char kIgnoreDeviceWithName[] = "Device Name to Ignore";
 
 HWND g_hwnd = nullptr;
 
@@ -215,6 +216,9 @@ bool IsForceFeedbackSupported(IDirectInputDevice8* device) {
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
                                   VOID* pContext) {
   std::cout << "Found device: " << instance->tszInstanceName << std::endl;
+  if (strstr(instance->tszInstanceName, kIgnoreDeviceWithName)) {
+    return DIENUM_CONTINUE;
+  }
   auto devices = reinterpret_cast<std::vector<IDirectInputDevice8*>*>(pContext);
   IDirectInput8* directInput = nullptr;
   HWND hwnd = GetHwnd();
@@ -313,11 +317,26 @@ int main() {
       return 1;
     } else {
       hr = effectInterface->Start(1, 0);
-      effectInterface->SetParameters(&effect, 0);
       if (!CheckDInputResult(hr, "Start")) {
         return 1;
       }
-      std::this_thread::sleep_for(std::chrono::seconds(3));
+      const auto start_time = std::chrono::high_resolution_clock::now();
+      for (int i = 0; i < kNumUpdates; ++i) {
+        periodic.dwMagnitude = (i * 10) % 10000;
+        hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
+        if (!CheckDInputResult(hr, "SetParameters")) {
+          return 1;
+        }
+      }
+      const auto kEndTime = std::chrono::high_resolution_clock::now();
+      const auto kDuration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(kEndTime -
+                                                                start_time);
+      const float kAverage =
+          static_cast<float>(kDuration.count()) / kNumUpdates;
+      std::cout << "Total run time for " << std::dec << kNumUpdates
+                << " updates: " << kDuration.count()
+                << " ms, average: " << kAverage << std::endl;
       effectInterface->Stop();
       effectInterface->Release();
     }

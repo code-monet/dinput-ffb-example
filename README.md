@@ -46,6 +46,7 @@ DirectInput Force Feedback example code
         (Start Debugging) or `Ctrl+F5` (Start Without Debugging).
 3.  **Run Executable Directly:**
     *   Alternatively, navigate to the build output directory (e.g.,
-        `x64\Debug` or `x64\Release` relative to your solution file).
-    *   Find the compiled executable (e.g., `dinput-ffb-example.exe`) and
+        `build\bin` relative to your solution file, look inside the folders
+        named after hte chosen variant and architecture).
+    *   Find the compiled executable (e.g., `ffb_example.exe`) and
         double-click it to run.

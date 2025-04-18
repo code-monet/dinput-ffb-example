@@ -336,7 +336,7 @@ int main() {
           static_cast<float>(kDuration.count()) / kNumUpdates;
       std::cout << "Total run time for " << std::dec << kNumUpdates
                 << " updates: " << kDuration.count()
-                << " ms, average: " << kAverage << std::endl;
+                << " ms, average: " << kAverage << " ms" << std::endl;
       effectInterface->Stop();
       effectInterface->Release();
     }

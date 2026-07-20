@@ -17,7 +17,7 @@ int ClampStrengthPercentage(int strengthPercentage) {
 
 const GUID kEffectGuid = GUID_Sine;
 const int kNumUpdates = 1000;
-const char kIgnoreDeviceWithName[] = "Device Name to Ignore";
+const char kIgnoreDeviceWithName[] = "vJoy Device";
 
 static HWND g_hwnd = nullptr;
 
@@ -342,6 +342,9 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
                                   VOID* pContext) {
   std::cout << "Found device: " << instance->tszInstanceName << std::endl;
   if (strstr(instance->tszInstanceName, kIgnoreDeviceWithName)) {
+    std::cout
+        << "  -> Ignoring device because in ignore list [kIgnoreDeviceWithName]"
+        << std::endl;
     return DIENUM_CONTINUE;
   }
   auto devices = reinterpret_cast<std::vector<IDirectInputDevice8*>*>(pContext);

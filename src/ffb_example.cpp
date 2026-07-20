@@ -125,9 +125,10 @@ int main(int argc, char** argv) {
         const auto start_time = std::chrono::high_resolution_clock::now();
         std::uint64_t updateCount = 0;
         if (numUpdates == 0) {
+          // Special case; run until interrupted.
           if (!di_common::BuildEffectParameters(
                   effectName, effect, typeSpecificParams, typeSpecificParamSize,
-                  mutateForces ? updateCount : 0, strengthPercentage)) {
+                  DI_FFNOMINALMAX - 1, strengthPercentage)) {
             std::cerr << "Unsupported effect type: " << effectName << std::endl;
             return 2;
           }
@@ -141,7 +142,8 @@ int main(int argc, char** argv) {
           }
         } else {
           while (!g_shouldStop && updateCount < numUpdates) {
-            const std::uint64_t iterationIndex = mutateForces ? updateCount : 0;
+            const std::uint64_t iterationIndex =
+                mutateForces ? updateCount : DI_FFNOMINALMAX - 1;
             if (!di_common::BuildEffectParameters(
                     effectName, effect, typeSpecificParams,
                     typeSpecificParamSize, iterationIndex,

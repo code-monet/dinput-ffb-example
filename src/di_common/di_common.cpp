@@ -314,16 +314,17 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
   if (normalized == "sine" || normalized == "square" ||
       normalized == "sawtoothdown" || normalized == "sawtoothup" ||
       normalized == "triangle") {
-    periodic.dwMagnitude = static_cast<DWORD>((iterationIndex * 10) % 10000);
+    periodic.dwMagnitude = static_cast<DWORD>((iterationIndex * 100) % 10000);
   } else if (normalized == "constant") {
-    constantForce.lMagnitude =
-        static_cast<LONG>((iterationIndex * 20) % 20000 - 10000);
+    constantForce.lMagnitude = static_cast<LONG>((iterationIndex * 20) % 10000);
   } else if (normalized == "ramp") {
-    rampForce.lStart = -DI_FFNOMINALMAX / 2;
-    rampForce.lEnd = static_cast<LONG>((iterationIndex * 10) % 10000);
+    rampForce.lStart = static_cast<LONG>((iterationIndex * 50) % 10000);
+    rampForce.lEnd = -DI_FFNOMINALMAX;
   } else if (normalized == "spring" || normalized == "damper" ||
              normalized == "friction" || normalized == "inertia") {
-    condition.lOffset = static_cast<LONG>((iterationIndex % 5) * 1000);
+    condition.lPositiveCoefficient =
+        static_cast<LONG>((iterationIndex * 100) % 10000);
+    condition.lNegativeCoefficient = condition.lPositiveCoefficient;
   }
 
   effect.cbTypeSpecificParams = typeSpecificParamSize;

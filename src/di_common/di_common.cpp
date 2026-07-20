@@ -1,26 +1,16 @@
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
-#include <windows.h>
+#include "di_common/di_common.h"
 
-#include <chrono>
-#include <iomanip>
+#include <cstring>
 #include <iostream>
-#include <thread>
 #include <vector>
 
-// Parameters for this example.
+namespace di_common {
 
-// Uncomment exactly one of the following periodic effects to play it.
-const auto kEffectGuid = GUID_Sine;
-// const auto kEffectGuid = GUID_Square;
-// const auto kEffectGuid = GUID_SawtoothDown;
-// const auto kEffectGuid = GUID_SawtoothUp;
-// const auto kEffectGuid = GUID_Triangle;
-
-const int kNumUpdates = 1000;  // The number of times to update the effect.
+const GUID kEffectGuid = GUID_Sine;
+const int kNumUpdates = 1000;
 const char kIgnoreDeviceWithName[] = "Device Name to Ignore";
 
-HWND g_hwnd = nullptr;
+static HWND g_hwnd = nullptr;
 
 HWND GetHwnd() {
   if (!g_hwnd) {
@@ -30,16 +20,8 @@ HWND GetHwnd() {
   return g_hwnd;
 }
 
-/**
- * @brief Converts a DirectInput HRESULT code into a human-readable string.
- *
- * @param hr The HRESULT code returned by a DirectInput function.
- * @return A const char* pointer to a string literal describing the error or
- * status. Returns "Unknown DirectInput HRESULT" if the code is not recognized.
- */
 const char* DInputErrorToString(HRESULT hr) {
   switch (hr) {
-    // --- Success Codes (S_...) ---
     case DI_OK:
       return "DI_OK: The operation completed successfully.";
     case S_FALSE:
@@ -57,8 +39,8 @@ const char* DInputErrorToString(HRESULT hr) {
              "DIEP_NODOWNLOAD flag was passed.";
     case DI_EFFECTRESTARTED:
       return "DI_EFFECTRESTARTED: The parameters of the effect were "
-             "successfully updated, but in order to change the parameters, the "
-             "effect needed to be restarted.";
+             "successfully updated, but in order to change the parameters, "
+             "the effect needed to be restarted.";
     case DI_TRUNCATED:
       return "DI_TRUNCATED: The parameters of the effect were successfully "
              "updated, but some of them were beyond the capabilities of the "
@@ -72,8 +54,6 @@ const char* DInputErrorToString(HRESULT hr) {
     case DI_WRITEPROTECT:
       return "DI_WRITEPROTECT: A SUCCESS code indicating that settings cannot "
              "be modified.";
-
-    // --- Error Codes (E_... or DIERR_...) ---
     case DIERR_OLDDIRECTINPUTVERSION:
       return "DIERR_OLDDIRECTINPUTVERSION: The application requires a newer "
              "version of DirectInput.";
@@ -84,56 +64,51 @@ const char* DInputErrorToString(HRESULT hr) {
       return "DIERR_BADDRIVERVER: The object could not be created due to an "
              "incompatible driver version or mismatched or incomplete driver "
              "components.";
-    case DIERR_DEVICENOTREG:  // Also REGDB_E_CLASSNOTREG
+    case DIERR_DEVICENOTREG:
       return "DIERR_DEVICENOTREG (REGDB_E_CLASSNOTREG): The device or device "
              "instance or effect is not registered with DirectInput.";
-    case DIERR_NOTFOUND:  // Also DIERR_OBJECTNOTFOUND, ERROR_FILE_NOT_FOUND
+    case DIERR_NOTFOUND:
       return "DIERR_NOTFOUND/OBJECTNOTFOUND (ERROR_FILE_NOT_FOUND): The "
              "requested object does not exist.";
-    // case DIERR_OBJECTNOTFOUND: // Same value as DIERR_NOTFOUND
-    case DIERR_INVALIDPARAM:  // Also E_INVALIDARG
+    case DIERR_INVALIDPARAM:
       return "DIERR_INVALIDPARAM (E_INVALIDARG): An invalid parameter was "
              "passed to the returning function, or the object was not in a "
              "state that admitted the function to be called.";
-    case DIERR_NOINTERFACE:  // Also E_NOINTERFACE
+    case DIERR_NOINTERFACE:
       return "DIERR_NOINTERFACE (E_NOINTERFACE): The specified interface is "
              "not supported by the object.";
-    case DIERR_GENERIC:  // Also E_FAIL
+    case DIERR_GENERIC:
       return "DIERR_GENERIC (E_FAIL): An undetermined error occurred inside "
              "the DInput subsystem.";
-    case DIERR_OUTOFMEMORY:  // Also E_OUTOFMEMORY
+    case DIERR_OUTOFMEMORY:
       return "DIERR_OUTOFMEMORY (E_OUTOFMEMORY): The DInput subsystem couldn't "
              "allocate sufficient memory to complete the caller's request.";
-    case DIERR_UNSUPPORTED:  // Also E_NOTIMPL
+    case DIERR_UNSUPPORTED:
       return "DIERR_UNSUPPORTED (E_NOTIMPL): The function called is not "
              "supported at this time.";
-    case DIERR_NOTINITIALIZED:  // Also ERROR_NOT_READY
+    case DIERR_NOTINITIALIZED:
       return "DIERR_NOTINITIALIZED (ERROR_NOT_READY): This object has not been "
              "initialized.";
-    case DIERR_ALREADYINITIALIZED:  // Also ERROR_ALREADY_INITIALIZED
+    case DIERR_ALREADYINITIALIZED:
       return "DIERR_ALREADYINITIALIZED (ERROR_ALREADY_INITIALIZED): This "
              "object is already initialized.";
-    case DIERR_NOAGGREGATION:  // Also CLASS_E_NOAGGREGATION
+    case DIERR_NOAGGREGATION:
       return "DIERR_NOAGGREGATION (CLASS_E_NOAGGREGATION): This object does "
              "not support aggregation.";
-    // Note: E_ACCESSDENIED maps to multiple DIERR codes.
-    case E_ACCESSDENIED:  // DIERR_OTHERAPPHASPRIO, DIERR_READONLY,
-                          // DIERR_HANDLEEXISTS
+    case E_ACCESSDENIED:
       return "E_ACCESSDENIED: Access Denied. Could be DIERR_OTHERAPPHASPRIO "
              "(another app has priority), DIERR_READONLY (property cannot be "
              "changed), or DIERR_HANDLEEXISTS (event notification already "
              "exists).";
-    case DIERR_INPUTLOST:  // Also ERROR_READ_FAULT
+    case DIERR_INPUTLOST:
       return "DIERR_INPUTLOST (ERROR_READ_FAULT): Access to the device has "
              "been lost. It must be re-acquired.";
-    case DIERR_ACQUIRED:  // Also ERROR_BUSY
+    case DIERR_ACQUIRED:
       return "DIERR_ACQUIRED (ERROR_BUSY): The operation cannot be performed "
              "while the device is acquired.";
-    case DIERR_NOTACQUIRED:  // Also ERROR_INVALID_ACCESS
+    case DIERR_NOTACQUIRED:
       return "DIERR_NOTACQUIRED (ERROR_INVALID_ACCESS): The operation cannot "
              "be performed unless the device is acquired.";
-    // case DIERR_READONLY: // Same value as E_ACCESSDENIED
-    // case DIERR_HANDLEEXISTS: // Same value as E_ACCESSDENIED
     case E_PENDING:
       return "E_PENDING: Data is not yet available.";
     case DIERR_INSUFFICIENTPRIVS:
@@ -173,14 +148,10 @@ const char* DInputErrorToString(HRESULT hr) {
     case DIERR_MAPFILEFAIL:
       return "DIERR_MAPFILEFAIL: A mapper file function failed because reading "
              "or writing the user or IHV settings file failed.";
-
-    // --- Other Common HRESULTs ---
     case E_HANDLE:
       return "E_HANDLE: Invalid handle.";
     case E_POINTER:
       return "E_POINTER: Invalid pointer.";
-      // Add more generic HRESULTs if needed
-
     default:
       return "Unknown DirectInput HRESULT";
   }
@@ -191,20 +162,15 @@ bool CheckDInputResult(HRESULT hr, const char* functionName) {
     std::cerr << functionName << " failed: " << DInputErrorToString(hr)
               << " (0x" << std::hex << hr << ")" << std::endl;
     return false;
-  } else if (hr != S_OK) {  // Handle S_FALSE codes which indicate success but
-                            // with a condition
+  } else if (hr != S_OK) {
     std::cout << functionName
               << " completed with status: " << DInputErrorToString(hr) << " (0x"
               << std::hex << hr << ")" << std::endl;
     return true;
   }
   return true;
-  // else {
-  //     std::cout << functionName << " succeeded." << std::endl;
-  // }
 }
 
-// Function to check if a device supports the desired effect.
 bool IsForceFeedbackSupported(IDirectInputDevice8* device) {
   DIEFFECTINFO effectInfo;
   effectInfo.dwSize = sizeof(DIEFFECTINFO);
@@ -212,7 +178,6 @@ bool IsForceFeedbackSupported(IDirectInputDevice8* device) {
   return CheckDInputResult(hr, "GetEffectInfo");
 }
 
-// Prepare each device for this example.
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
                                   VOID* pContext) {
   std::cout << "Found device: " << instance->tszInstanceName << std::endl;
@@ -223,14 +188,14 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
   IDirectInput8* directInput = nullptr;
   HWND hwnd = GetHwnd();
   if (!hwnd) {
-    std::cerr << "  -> ERROR: Could not get console window handle!"
-              << std::endl;
-    directInput->Release();
+    std::cerr << "  -> ERROR: Could not get console window handle!" << std::endl;
+    if (directInput) {
+      directInput->Release();
+    }
     return false;
   }
-  HRESULT hr =
-      DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-                         IID_IDirectInput8, (void**)&directInput, nullptr);
+  HRESULT hr = DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
+                                  IID_IDirectInput8, (void**)&directInput, nullptr);
   if (!CheckDInputResult(hr, "DirectInput8Create")) {
     return DIENUM_STOP;
   } else if (!directInput) {
@@ -260,89 +225,4 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
   return DIENUM_CONTINUE;
 }
 
-int main() {
-  IDirectInput8* directInput = nullptr;
-  std::vector<IDirectInputDevice8*> forceFeedbackDevices;
-
-  HRESULT hr =
-      DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-                         IID_IDirectInput8, (void**)&directInput, nullptr);
-  if (!CheckDInputResult(hr, "DirectInput8Create")) {
-    return 1;
-  } else if (!directInput) {
-    std::cerr << "directInput unexpectedly null" << std::endl;
-    return 1;
-  }
-
-  hr = directInput->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumDevicesCallback,
-                                &forceFeedbackDevices,
-                                DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
-  if (!CheckDInputResult(hr, "EnumDevices")) {
-    directInput->Release();
-    return 1;
-  }
-
-  std::cout << "Found " << forceFeedbackDevices.size()
-            << " force feedback devices." << std::endl;
-  for (IDirectInputDevice8* device : forceFeedbackDevices) {
-    DIEFFECT effect;
-    ZeroMemory(&effect, sizeof(effect));
-    effect.dwSize = sizeof(DIEFFECT);
-    effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
-    effect.dwDuration = INFINITE;
-    effect.dwSamplePeriod = 0;
-    effect.dwGain = DI_FFNOMINALMAX / 4;
-    effect.dwTriggerButton = DIEB_NOTRIGGER;
-    effect.dwTriggerRepeatInterval = 0;
-    effect.cAxes = 1;
-    DWORD axes[1] = {DIJOFS_X};
-    effect.rgdwAxes = axes;
-
-    LONG direction[1] = {1};
-    effect.rglDirection = direction;
-
-    // Create the type specific periodic parameters.
-    DIPERIODIC periodic;
-    ZeroMemory(&periodic, sizeof(periodic));
-    periodic.dwMagnitude = DI_FFNOMINALMAX;
-    periodic.lOffset = 0;
-    periodic.dwPhase = 0;
-    periodic.dwPeriod = 500 * 1000;  // 500 ms.
-
-    effect.cbTypeSpecificParams = sizeof(DIPERIODIC);
-    effect.lpvTypeSpecificParams = &periodic;
-
-    IDirectInputEffect* effectInterface = nullptr;
-    hr = device->CreateEffect(kEffectGuid, &effect, &effectInterface, nullptr);
-    if (!CheckDInputResult(hr, "CreateEffect")) {
-      return 1;
-    } else {
-      hr = effectInterface->Start(1, 0);
-      if (!CheckDInputResult(hr, "Start")) {
-        return 1;
-      }
-      const auto start_time = std::chrono::high_resolution_clock::now();
-      for (int i = 0; i < kNumUpdates; ++i) {
-        periodic.dwMagnitude = (i * 10) % 10000;
-        hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
-        if (!CheckDInputResult(hr, "SetParameters")) {
-          return 1;
-        }
-      }
-      const auto kEndTime = std::chrono::high_resolution_clock::now();
-      const auto kDuration =
-          std::chrono::duration_cast<std::chrono::milliseconds>(kEndTime -
-                                                                start_time);
-      const float kAverage =
-          static_cast<float>(kDuration.count()) / kNumUpdates;
-      std::cout << "Total run time for " << std::dec << kNumUpdates
-                << " updates: " << kDuration.count()
-                << " ms, average: " << kAverage << " ms" << std::endl;
-      effectInterface->Stop();
-      effectInterface->Release();
-    }
-    device->Release();
-  }
-  directInput->Release();
-  return 0;
-}
+}  // namespace di_common

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(ffb_example)
+project(ffb_example LANGUAGES CXX)
 
 if(CMAKE_GENERATOR_PLATFORM MATCHES "x64")
     set(ARCH_DIR "x64")
@@ -23,5 +23,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}")
 
-add_executable(ffb_example ffb_example.cpp)
-target_link_libraries(ffb_example dinput8 dxguid)
+add_library(di_common STATIC
+    src/di_common/di_common.cpp
+)
+target_include_directories(di_common PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+target_link_libraries(di_common PUBLIC dinput8 dxguid)
+
+add_executable(ffb_example src/ffb_example.cpp)
+target_link_libraries(ffb_example PRIVATE di_common)

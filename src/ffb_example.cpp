@@ -1,0 +1,92 @@
+#include "di_common/di_common.h"
+
+#include <chrono>
+#include <iostream>
+#include <vector>
+
+int main() {
+  IDirectInput8* directInput = nullptr;
+  std::vector<IDirectInputDevice8*> forceFeedbackDevices;
+
+  HRESULT hr =
+      DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
+                         IID_IDirectInput8, (void**)&directInput, nullptr);
+  if (!di_common::CheckDInputResult(hr, "DirectInput8Create")) {
+    return 1;
+  } else if (!directInput) {
+    std::cerr << "directInput unexpectedly null" << std::endl;
+    return 1;
+  }
+
+  hr = directInput->EnumDevices(DI8DEVCLASS_GAMECTRL,
+                                di_common::EnumDevicesCallback, &forceFeedbackDevices,
+                                DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+  if (!di_common::CheckDInputResult(hr, "EnumDevices")) {
+    directInput->Release();
+    return 1;
+  }
+
+  std::cout << "Found " << forceFeedbackDevices.size()
+            << " force feedback devices." << std::endl;
+  for (IDirectInputDevice8* device : forceFeedbackDevices) {
+    DIEFFECT effect;
+    ZeroMemory(&effect, sizeof(effect));
+    effect.dwSize = sizeof(DIEFFECT);
+    effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
+    effect.dwDuration = INFINITE;
+    effect.dwSamplePeriod = 0;
+    effect.dwGain = DI_FFNOMINALMAX / 4;
+    effect.dwTriggerButton = DIEB_NOTRIGGER;
+    effect.dwTriggerRepeatInterval = 0;
+    effect.cAxes = 1;
+    DWORD axes[1] = {DIJOFS_X};
+    effect.rgdwAxes = axes;
+
+    LONG direction[1] = {1};
+    effect.rglDirection = direction;
+
+    DIPERIODIC periodic;
+    ZeroMemory(&periodic, sizeof(periodic));
+    periodic.dwMagnitude = DI_FFNOMINALMAX;
+    periodic.lOffset = 0;
+    periodic.dwPhase = 0;
+    periodic.dwPeriod = 500 * 1000;
+
+    effect.cbTypeSpecificParams = sizeof(DIPERIODIC);
+    effect.lpvTypeSpecificParams = &periodic;
+
+    IDirectInputEffect* effectInterface = nullptr;
+    hr = device->CreateEffect(di_common::kEffectGuid, &effect, &effectInterface,
+                              nullptr);
+    if (!di_common::CheckDInputResult(hr, "CreateEffect")) {
+      return 1;
+    } else {
+      hr = effectInterface->Start(1, 0);
+      if (!di_common::CheckDInputResult(hr, "Start")) {
+        return 1;
+      }
+      const auto start_time = std::chrono::high_resolution_clock::now();
+      for (int i = 0; i < di_common::kNumUpdates; ++i) {
+        periodic.dwMagnitude = (i * 10) % 10000;
+        hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
+        if (!di_common::CheckDInputResult(hr, "SetParameters")) {
+          return 1;
+        }
+      }
+      const auto kEndTime = std::chrono::high_resolution_clock::now();
+      const auto kDuration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(kEndTime -
+                                                                start_time);
+      const float kAverage =
+          static_cast<float>(kDuration.count()) / di_common::kNumUpdates;
+      std::cout << "Total run time for " << std::dec << di_common::kNumUpdates
+                << " updates: " << kDuration.count()
+                << " ms, average: " << kAverage << " ms" << std::endl;
+      effectInterface->Stop();
+      effectInterface->Release();
+    }
+    device->Release();
+  }
+  directInput->Release();
+  return 0;
+}

@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     std::uint64_t numUpdates = result["num_updates"].as<std::uint64_t>();
     bool mutateForces = result["mutate_forces"].as<bool>();
     int strengthPercentage = result["strength_percentage"].as<int>();
-    GUID effectGuid = di_common::kEffectGuid;
+    GUID effectGuid = di_common::kSineEffectGuid;
     if (!di_common::ResolveEffectGuid(effectName, effectGuid)) {
       std::cerr << "Unknown effect '" << effectName
                 << "'. Expected one of: sine, square, sawtooth-down, "
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
           // Special case; run until interrupted.
           if (!di_common::BuildEffectParameters(
                   effectName, effect, typeSpecificParams, typeSpecificParamSize,
-                  DI_FFNOMINALMAX - 1, strengthPercentage)) {
+                  0, strengthPercentage)) {
             std::cerr << "Unsupported effect type: " << effectName << std::endl;
             return 2;
           }
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
         } else {
           while (!g_shouldStop && updateCount < numUpdates) {
             const std::uint64_t iterationIndex =
-                mutateForces ? updateCount : DI_FFNOMINALMAX - 1;
+                mutateForces ? updateCount : 0;
             if (!di_common::BuildEffectParameters(
                     effectName, effect, typeSpecificParams,
                     typeSpecificParamSize, iterationIndex,

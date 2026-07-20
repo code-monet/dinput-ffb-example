@@ -27,9 +27,9 @@ bool ReadXAxisValue(IDirectInputDevice8* device, LONG& rawXAxisValue) {
   return true;
 }
 
-const GUID kEffectGuid = GUID_Sine;
+const GUID kSineEffectGuid = GUID_Sine;
 const int kNumUpdates = 1000;
-const char kIgnoreDeviceWithName[] = "vJoy Device";
+const char kIgnoreDeviceWithName[] = "vJoy Device";// "VelocityOne Race KD3"; 
 
 static HWND g_hwnd = nullptr;
 
@@ -46,7 +46,7 @@ const char* DInputErrorToString(HRESULT hr) {
     case DI_OK:
       return "DI_OK: The operation completed successfully.";
     case S_FALSE:
-      return "S_FLASE: Could be one of: DI_NOTATTACHED, DI_BUFFEROVERFLOW, "
+      return "S_FALSE: Could be one of: DI_NOTATTACHED, DI_BUFFEROVERFLOW, "
              "DI_PROPNOEFFECT, DI_NOEFFECT.";
     case DI_POLLEDDEVICE:
       return "DI_POLLEDDEVICE: The device is a polled device. As a result, "
@@ -323,20 +323,23 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
     return false;
   }
 
-  if (normalized == "sine" || normalized == "square" ||
-      normalized == "sawtoothdown" || normalized == "sawtoothup" ||
-      normalized == "triangle") {
-    periodic.dwMagnitude = static_cast<DWORD>((iterationIndex * 100) % 10000);
-  } else if (normalized == "constant") {
-    constantForce.lMagnitude = static_cast<LONG>((iterationIndex * 20) % 10000);
-  } else if (normalized == "ramp") {
-    rampForce.lStart = static_cast<LONG>((iterationIndex * 50) % 10000);
-    rampForce.lEnd = -DI_FFNOMINALMAX;
-  } else if (normalized == "spring" || normalized == "damper" ||
-             normalized == "friction" || normalized == "inertia") {
-    condition.lPositiveCoefficient =
-        static_cast<LONG>((iterationIndex * 100) % 10000);
-    condition.lNegativeCoefficient = condition.lPositiveCoefficient;
+  if (iterationIndex) {
+    if (normalized == "sine" || normalized == "square" ||
+        normalized == "sawtoothdown" || normalized == "sawtoothup" ||
+        normalized == "triangle") {
+      periodic.dwMagnitude = static_cast<DWORD>((iterationIndex * 100) % 10000);
+    } else if (normalized == "constant") {
+      constantForce.lMagnitude =
+          static_cast<LONG>((iterationIndex * 20) % 10000);
+    } else if (normalized == "ramp") {
+      rampForce.lStart = static_cast<LONG>((iterationIndex * 50) % 10000);
+      rampForce.lEnd = -DI_FFNOMINALMAX;
+    } else if (normalized == "spring" || normalized == "damper" ||
+               normalized == "friction" || normalized == "inertia") {
+      condition.lPositiveCoefficient =
+          static_cast<LONG>((iterationIndex * 100) % 10000);
+      condition.lNegativeCoefficient = condition.lPositiveCoefficient;
+    }
   }
 
   effect.cbTypeSpecificParams = typeSpecificParamSize;
@@ -347,7 +350,7 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
 bool IsForceFeedbackSupported(IDirectInputDevice8* device) {
   DIEFFECTINFO effectInfo;
   effectInfo.dwSize = sizeof(DIEFFECTINFO);
-  HRESULT hr = device->GetEffectInfo(&effectInfo, kEffectGuid);
+  HRESULT hr = device->GetEffectInfo(&effectInfo, kSineEffectGuid);
   return CheckDInputResult(hr, "GetEffectInfo");
 }
 

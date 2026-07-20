@@ -100,3 +100,29 @@ it into a scaled constant-force output. It prints the raw X-axis value and the s
 value to the console, and continues updating until Ctrl+C is pressed.
 
 The code is at [`emulated_spring.cpp`](./src/emulated_spring.cpp).
+
+### Force Spikes
+
+This example creates a background sine force that remains active while periodically
+injecting short constant-force spikes. The spike timing is controlled by command-line flags,
+allowing you to tune the background strength, spike duration, and delay between spikes.
+
+> Be careful with this example as it will spike force and therefore motor current.
+
+The code is at [`force_spikes.cpp`](./src/force_spikes.cpp).
+
+#### Command-line Options
+
+*   `-b, --background_strength <percent>`: Set the strength of the background sine force
+    from `0` to `100`. Defaults to `10`.
+*   `-s, --spike_duration_ms <ms>`: Set the duration of each constant-force spike from `1`
+    to `10000` milliseconds. Defaults to `30`.
+*   `-d, --spike_delay_ms <ms>`: Set the delay between spikes in milliseconds. The value must
+    be greater than `1`. Defaults to `500`.
+*   `-h, --help`: Print the command-line help text.
+
+#### Example Command
+
+```bash
+force_spikes.exe --background_strength 25 --spike_duration_ms 50 --spike_delay_ms 750
+```

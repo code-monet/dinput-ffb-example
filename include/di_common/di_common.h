@@ -13,7 +13,7 @@
 
 namespace di_common {
 
-extern const GUID kEffectGuid;
+extern const GUID kSineEffectGuid;
 extern const int kNumUpdates;
 extern const char kIgnoreDeviceWithName[];
 

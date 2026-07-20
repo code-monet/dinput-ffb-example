@@ -42,3 +42,9 @@ target_link_libraries(ffb_example PRIVATE di_common)
 
 add_executable(emulated_spring src/emulated_spring.cpp)
 target_link_libraries(emulated_spring PRIVATE di_common)
+
+add_executable(force_spikes src/force_spikes.cpp)
+target_include_directories(force_spikes PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts"
+)
+target_link_libraries(force_spikes PRIVATE di_common)

@@ -60,7 +60,7 @@ int main() {
       return 1;
     }
 
-    GUID effectGuid = di_common::kEffectGuid;
+    GUID effectGuid = di_common::kSineEffectGuid;
     if (!di_common::ResolveEffectGuid("constant", effectGuid)) {
       std::cerr << "Failed to resolve constant-force effect GUID." << std::endl;
       device->Release();

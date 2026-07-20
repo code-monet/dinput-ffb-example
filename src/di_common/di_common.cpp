@@ -29,7 +29,7 @@ bool ReadXAxisValue(IDirectInputDevice8* device, LONG& rawXAxisValue) {
 
 const GUID kSineEffectGuid = GUID_Sine;
 const int kNumUpdates = 1000;
-const char kIgnoreDeviceWithName[] = "vJoy Device";// "VelocityOne Race KD3"; 
+const char kIgnoreDeviceWithName[] = "vJoy Device";
 
 static HWND g_hwnd = nullptr;
 

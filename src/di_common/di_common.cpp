@@ -6,7 +6,14 @@
 #include <iostream>
 #include <vector>
 
+using std::max;
+using std::min;
+
 namespace di_common {
+
+int ClampStrengthPercentage(int strengthPercentage) {
+  return max(0, min(100, strengthPercentage));
+}
 
 const GUID kEffectGuid = GUID_Sine;
 const int kNumUpdates = 1000;
@@ -240,7 +247,8 @@ bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
 bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
                            void*& typeSpecificParams,
                            DWORD& typeSpecificParamSize,
-                           std::uint64_t iterationIndex) {
+                           std::uint64_t iterationIndex,
+                           int strengthPercentage) {
   std::string normalized = NormalizeEffectName(effectName);
 
   static DIPERIODIC periodic;
@@ -255,7 +263,9 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
   effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
   effect.dwDuration = INFINITE;
   effect.dwSamplePeriod = 0;
-  effect.dwGain = DI_FFNOMINALMAX / 4;
+  const int clampedStrength = ClampStrengthPercentage(strengthPercentage);
+  const double strengthScale = clampedStrength / 100.0;
+  effect.dwGain = static_cast<DWORD>(DI_FFNOMINALMAX * strengthScale);
   effect.dwTriggerButton = DIEB_NOTRIGGER;
   effect.dwTriggerRepeatInterval = 0;
   effect.cAxes = 1;
@@ -266,7 +276,7 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
       normalized == "sawtoothdown" || normalized == "sawtoothup" ||
       normalized == "triangle") {
     ZeroMemory(&periodic, sizeof(periodic));
-    periodic.dwMagnitude = DI_FFNOMINALMAX;
+    periodic.dwMagnitude = static_cast<DWORD>(DI_FFNOMINALMAX * strengthScale);
     periodic.lOffset = 0;
     periodic.dwPhase = 0;
     periodic.dwPeriod = 500 * 1000;
@@ -274,23 +284,26 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
     typeSpecificParamSize = sizeof(periodic);
   } else if (normalized == "constant") {
     ZeroMemory(&constantForce, sizeof(constantForce));
-    constantForce.lMagnitude = DI_FFNOMINALMAX / 2;
+    constantForce.lMagnitude =
+        static_cast<LONG>(DI_FFNOMINALMAX * strengthScale);
     typeSpecificParams = &constantForce;
     typeSpecificParamSize = sizeof(constantForce);
   } else if (normalized == "ramp") {
     ZeroMemory(&rampForce, sizeof(rampForce));
-    rampForce.lStart = -DI_FFNOMINALMAX / 2;
-    rampForce.lEnd = DI_FFNOMINALMAX / 2;
+    rampForce.lStart = static_cast<LONG>(-DI_FFNOMINALMAX * strengthScale);
+    rampForce.lEnd = static_cast<LONG>(DI_FFNOMINALMAX * strengthScale);
     typeSpecificParams = &rampForce;
     typeSpecificParamSize = sizeof(rampForce);
   } else if (normalized == "spring" || normalized == "damper" ||
              normalized == "friction" || normalized == "inertia") {
     ZeroMemory(&condition, sizeof(condition));
     condition.lOffset = 0;
-    condition.lPositiveCoefficient = DI_FFNOMINALMAX / 4;
-    condition.lNegativeCoefficient = -DI_FFNOMINALMAX / 4;
-    condition.dwPositiveSaturation = DI_FFNOMINALMAX / 2;
-    condition.dwNegativeSaturation = DI_FFNOMINALMAX / 2;
+    condition.lPositiveCoefficient =
+        static_cast<LONG>(DI_FFNOMINALMAX * strengthScale);
+    condition.lNegativeCoefficient =
+        static_cast<LONG>(-DI_FFNOMINALMAX * strengthScale);
+    condition.dwPositiveSaturation = DI_FFNOMINALMAX;
+    condition.dwNegativeSaturation = DI_FFNOMINALMAX;
     condition.lDeadBand = 0;
     typeSpecificParams = &condition;
     typeSpecificParamSize = sizeof(condition);

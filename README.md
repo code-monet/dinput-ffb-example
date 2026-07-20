@@ -62,6 +62,9 @@ The example supports the following command-line arguments:
     to send a single initial update and then wait for Ctrl+C.
 *   `-m, --mutate_forces`: If provided, mutate the force values on each update.
     If omitted, the initial force values are reused for each update.
+*   `-s, --strength_percentage <percent>`: Scale the applied force strength from
+    `0` to `100`. The value is clamped to that range and defaults to `25`.
+*   `-h, --help`: Print the command-line help text.
 
 ### Example Commands
 
@@ -71,10 +74,10 @@ Run spring with no updates indefinitely:
 ffb_example.exe --effect spring --num_updates 0
 ```
 
-Run constant with mutating updates 2000 times:
+Run constant with mutating updates 2000 times and 75% strength:
 
 ```bash
-ffb_example.exe --effect constant --num_updates 2000 --mutate_forces
+ffb_example.exe --effect constant --num_updates 2000 --mutate_forces --strength_percentage 75
 ```
 
 Run sine without mutation but with updates 5000 times:

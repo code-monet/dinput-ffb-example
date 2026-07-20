@@ -18,11 +18,13 @@ HWND GetHwnd();
 const char* DInputErrorToString(HRESULT hr);
 bool CheckDInputResult(HRESULT hr, const char* functionName);
 std::string NormalizeEffectName(const std::string& effectName);
+int ClampStrengthPercentage(int strengthPercentage);
 bool IsForceFeedbackSupported(IDirectInputDevice8* device);
 bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid);
 bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
                            void*& typeSpecificParams, DWORD& typeSpecificParamSize,
-                           std::uint64_t iterationIndex);
+                           std::uint64_t iterationIndex,
+                           int strengthPercentage);
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance, VOID* pContext);
 
 }  // namespace di_common

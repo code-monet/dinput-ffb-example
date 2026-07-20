@@ -30,7 +30,11 @@ int main(int argc, char** argv) {
       "m,mutate_forces",
       "If true, mutate the force parameters on each update. If false, keep "
       "the initial force values and only resend them.",
-      cxxopts::value<bool>()->default_value("false"))("h,help", "Print help");
+      cxxopts::value<bool>()->default_value("false"))(
+      "s,strength_percentage",
+      "Strength percentage to apply to the effect, from 0 to 100. Defaults to "
+      "25.",
+      cxxopts::value<int>()->default_value("25"))("h,help", "Print help");
 
   try {
     auto result = options.parse(argc, argv);
@@ -44,6 +48,7 @@ int main(int argc, char** argv) {
     std::string effectName = result["effect"].as<std::string>();
     std::uint64_t numUpdates = result["num_updates"].as<std::uint64_t>();
     bool mutateForces = result["mutate_forces"].as<bool>();
+    int strengthPercentage = result["strength_percentage"].as<int>();
     GUID effectGuid = di_common::kEffectGuid;
     if (!di_common::ResolveEffectGuid(effectName, effectGuid)) {
       std::cerr << "Unknown effect '" << effectName
@@ -67,6 +72,9 @@ int main(int argc, char** argv) {
       std::cout << "Force values will remain fixed across updates."
                 << std::endl;
     }
+    const int clampedStrength =
+        di_common::ClampStrengthPercentage(strengthPercentage);
+    std::cout << "Strength percentage: " << clampedStrength << "%" << std::endl;
 
     std::string normalizedEffectName =
         di_common::NormalizeEffectName(effectName);
@@ -98,9 +106,9 @@ int main(int argc, char** argv) {
       DIEFFECT effect;
       void* typeSpecificParams = nullptr;
       DWORD typeSpecificParamSize = 0;
-      if (!di_common::BuildEffectParameters(effectName, effect,
-                                            typeSpecificParams,
-                                            typeSpecificParamSize, 0)) {
+      if (!di_common::BuildEffectParameters(
+              effectName, effect, typeSpecificParams, typeSpecificParamSize, 0,
+              strengthPercentage)) {
         std::cerr << "Unsupported effect type: " << effectName << std::endl;
         return 2;
       }
@@ -119,7 +127,7 @@ int main(int argc, char** argv) {
         if (numUpdates == 0) {
           if (!di_common::BuildEffectParameters(
                   effectName, effect, typeSpecificParams, typeSpecificParamSize,
-                  mutateForces ? updateCount : 0)) {
+                  mutateForces ? updateCount : 0, strengthPercentage)) {
             std::cerr << "Unsupported effect type: " << effectName << std::endl;
             return 2;
           }
@@ -136,7 +144,8 @@ int main(int argc, char** argv) {
             const std::uint64_t iterationIndex = mutateForces ? updateCount : 0;
             if (!di_common::BuildEffectParameters(
                     effectName, effect, typeSpecificParams,
-                    typeSpecificParamSize, iterationIndex)) {
+                    typeSpecificParamSize, iterationIndex,
+                    strengthPercentage)) {
               std::cerr << "Unsupported effect type: " << effectName
                         << std::endl;
               return 2;

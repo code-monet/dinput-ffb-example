@@ -175,8 +175,9 @@ bool CheckDInputResult(HRESULT hr, const char* functionName) {
 
 std::string NormalizeEffectName(const std::string& effectName) {
   std::string normalized = effectName;
-  std::transform(normalized.begin(), normalized.end(), normalized.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      normalized.begin(), normalized.end(), normalized.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
   normalized.erase(std::remove(normalized.begin(), normalized.end(), '-'),
                    normalized.end());
@@ -237,8 +238,9 @@ bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
 }
 
 bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
-                           void*& typeSpecificParams, DWORD& typeSpecificParamSize,
-                           int iterationIndex) {
+                           void*& typeSpecificParams,
+                           DWORD& typeSpecificParamSize,
+                           std::uint64_t iterationIndex) {
   std::string normalized = NormalizeEffectName(effectName);
 
   static DIPERIODIC periodic;
@@ -299,9 +301,10 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
   if (normalized == "sine" || normalized == "square" ||
       normalized == "sawtoothdown" || normalized == "sawtoothup" ||
       normalized == "triangle") {
-    periodic.dwMagnitude = (iterationIndex * 10) % 10000;
+    periodic.dwMagnitude = static_cast<DWORD>((iterationIndex * 10) % 10000);
   } else if (normalized == "constant") {
-    constantForce.lMagnitude = static_cast<LONG>((iterationIndex * 20) % 20000 - 10000);
+    constantForce.lMagnitude =
+        static_cast<LONG>((iterationIndex * 20) % 20000 - 10000);
   } else if (normalized == "ramp") {
     rampForce.lStart = -DI_FFNOMINALMAX / 2;
     rampForce.lEnd = static_cast<LONG>((iterationIndex * 10) % 10000);
@@ -332,14 +335,16 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
   IDirectInput8* directInput = nullptr;
   HWND hwnd = GetHwnd();
   if (!hwnd) {
-    std::cerr << "  -> ERROR: Could not get console window handle!" << std::endl;
+    std::cerr << "  -> ERROR: Could not get console window handle!"
+              << std::endl;
     if (directInput) {
       directInput->Release();
     }
     return false;
   }
-  HRESULT hr = DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-                                  IID_IDirectInput8, (void**)&directInput, nullptr);
+  HRESULT hr =
+      DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
+                         IID_IDirectInput8, (void**)&directInput, nullptr);
   if (!CheckDInputResult(hr, "DirectInput8Create")) {
     return DIENUM_STOP;
   } else if (!directInput) {

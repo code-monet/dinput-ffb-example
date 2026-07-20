@@ -1,11 +1,19 @@
-#include "di_common/di_common.h"
-
-#include <cxxopts.hpp>
-
 #include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cxxopts.hpp>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
+
+#include "di_common/di_common.h"
+
+namespace {
+volatile std::sig_atomic_t g_shouldStop = 0;
+
+void HandleSignal(int) { g_shouldStop = 1; }
+}  // namespace
 
 int main(int argc, char** argv) {
   cxxopts::Options options("ffb_example",
@@ -15,7 +23,11 @@ int main(int argc, char** argv) {
                         "sawtooth-up, triangle, constant, ramp, spring, "
                         "damper, friction, inertia",
                         cxxopts::value<std::string>()->default_value("sine"))(
-      "h,help", "Print help");
+      "n,num_updates",
+      "Number of updates to send before stopping. Use 0 to send a single "
+      "initial update and then wait for Ctrl+C.",
+      cxxopts::value<std::uint64_t>()->default_value("1000"))("h,help",
+                                                              "Print help");
 
   try {
     auto result = options.parse(argc, argv);
@@ -24,7 +36,10 @@ int main(int argc, char** argv) {
       return 0;
     }
 
+    std::signal(SIGINT, HandleSignal);
+
     std::string effectName = result["effect"].as<std::string>();
+    std::uint64_t numUpdates = result["num_updates"].as<std::uint64_t>();
     GUID effectGuid = di_common::kEffectGuid;
     if (!di_common::ResolveEffectGuid(effectName, effectGuid)) {
       std::cerr << "Unknown effect '" << effectName
@@ -36,6 +51,11 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "Using effect: " << effectName << std::endl;
+    if (numUpdates == 0) {
+      std::cout << "Sending one initial update and waiting for Ctrl+C." << std::endl;
+    } else {
+      std::cout << "Sending " << numUpdates << " updates." << std::endl;
+    }
 
     std::string normalizedEffectName =
         di_common::NormalizeEffectName(effectName);
@@ -53,10 +73,9 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    hr = directInput->EnumDevices(DI8DEVCLASS_GAMECTRL,
-                                  di_common::EnumDevicesCallback,
-                                  &forceFeedbackDevices,
-                                  DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+    hr = directInput->EnumDevices(
+        DI8DEVCLASS_GAMECTRL, di_common::EnumDevicesCallback,
+        &forceFeedbackDevices, DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
     if (!di_common::CheckDInputResult(hr, "EnumDevices")) {
       directInput->Release();
       return 1;
@@ -65,49 +84,74 @@ int main(int argc, char** argv) {
     std::cout << "Found " << forceFeedbackDevices.size()
               << " force feedback devices." << std::endl;
     for (IDirectInputDevice8* device : forceFeedbackDevices) {
-    DIEFFECT effect;
-    void* typeSpecificParams = nullptr;
-    DWORD typeSpecificParamSize = 0;
-    if (!di_common::BuildEffectParameters(effectName, effect, typeSpecificParams,
-                                         typeSpecificParamSize, 0)) {
-      std::cerr << "Unsupported effect type: " << effectName << std::endl;
-      return 2;
-    }
-
-    IDirectInputEffect* effectInterface = nullptr;
-    hr = device->CreateEffect(effectGuid, &effect, &effectInterface, nullptr);
-    if (!di_common::CheckDInputResult(hr, "CreateEffect")) {
-      return 1;
-    } else {
-      hr = effectInterface->Start(1, 0);
-      if (!di_common::CheckDInputResult(hr, "Start")) {
-        return 1;
+      DIEFFECT effect;
+      void* typeSpecificParams = nullptr;
+      DWORD typeSpecificParamSize = 0;
+      if (!di_common::BuildEffectParameters(effectName, effect,
+                                            typeSpecificParams,
+                                            typeSpecificParamSize, 0)) {
+        std::cerr << "Unsupported effect type: " << effectName << std::endl;
+        return 2;
       }
-      const auto start_time = std::chrono::high_resolution_clock::now();
-      for (int i = 0; i < di_common::kNumUpdates; ++i) {
-        if (!di_common::BuildEffectParameters(effectName, effect,
-                                             typeSpecificParams,
-                                             typeSpecificParamSize, i)) {
-          std::cerr << "Unsupported effect type: " << effectName << std::endl;
-          return 2;
-        }
-        hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
-        if (!di_common::CheckDInputResult(hr, "SetParameters")) {
+
+      IDirectInputEffect* effectInterface = nullptr;
+      hr = device->CreateEffect(effectGuid, &effect, &effectInterface, nullptr);
+      if (!di_common::CheckDInputResult(hr, "CreateEffect")) {
+        return 1;
+      } else {
+        hr = effectInterface->Start(1, 0);
+        if (!di_common::CheckDInputResult(hr, "Start")) {
           return 1;
         }
+        const auto start_time = std::chrono::high_resolution_clock::now();
+        std::uint64_t updateCount = 0;
+        if (numUpdates == 0) {
+          if (!di_common::BuildEffectParameters(
+                  effectName, effect, typeSpecificParams, typeSpecificParamSize,
+                  updateCount)) {
+            std::cerr << "Unsupported effect type: " << effectName << std::endl;
+            return 2;
+          }
+          hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
+          if (!di_common::CheckDInputResult(hr, "SetParameters")) {
+            return 1;
+          }
+          ++updateCount;
+          while (!g_shouldStop) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          }
+        } else {
+          while (!g_shouldStop && updateCount < numUpdates) {
+            if (!di_common::BuildEffectParameters(
+                    effectName, effect, typeSpecificParams,
+                    typeSpecificParamSize, updateCount)) {
+              std::cerr << "Unsupported effect type: " << effectName << std::endl;
+              return 2;
+            }
+            hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
+            if (!di_common::CheckDInputResult(hr, "SetParameters")) {
+              return 1;
+            }
+            ++updateCount;
+          }
+        }
+        const auto kEndTime = std::chrono::high_resolution_clock::now();
+        const auto kDuration =
+            std::chrono::duration_cast<std::chrono::milliseconds>(kEndTime -
+                                                                  start_time);
+        const float kAverage =
+            updateCount > 0
+                ? static_cast<float>(kDuration.count()) / updateCount
+                : 0.0f;
+        std::cout << "Total run time for " << std::dec << updateCount
+                  << " updates: " << kDuration.count()
+                  << " ms, average: " << kAverage << " ms" << std::endl;
+        if (g_shouldStop) {
+          std::cout << "Interrupted by Ctrl+C; stopping cleanly." << std::endl;
+        }
+        effectInterface->Stop();
+        effectInterface->Release();
       }
-      const auto kEndTime = std::chrono::high_resolution_clock::now();
-      const auto kDuration =
-          std::chrono::duration_cast<std::chrono::milliseconds>(kEndTime -
-                                                                start_time);
-      const float kAverage =
-          static_cast<float>(kDuration.count()) / di_common::kNumUpdates;
-      std::cout << "Total run time for " << std::dec << di_common::kNumUpdates
-                << " updates: " << kDuration.count()
-                << " ms, average: " << kAverage << " ms" << std::endl;
-      effectInterface->Stop();
-      effectInterface->Release();
-    }
       device->Release();
     }
     directInput->Release();

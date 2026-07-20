@@ -4,6 +4,7 @@
 #include <dinput.h>
 #include <windows.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -21,7 +22,7 @@ bool IsForceFeedbackSupported(IDirectInputDevice8* device);
 bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid);
 bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
                            void*& typeSpecificParams, DWORD& typeSpecificParamSize,
-                           int iterationIndex);
+                           std::uint64_t iterationIndex);
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance, VOID* pContext);
 
 }  // namespace di_common

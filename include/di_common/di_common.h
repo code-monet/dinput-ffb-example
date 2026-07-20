@@ -4,6 +4,7 @@
 #include <dinput.h>
 #include <windows.h>
 
+#include <string>
 #include <vector>
 
 namespace di_common {
@@ -16,6 +17,7 @@ HWND GetHwnd();
 const char* DInputErrorToString(HRESULT hr);
 bool CheckDInputResult(HRESULT hr, const char* functionName);
 bool IsForceFeedbackSupported(IDirectInputDevice8* device);
+bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid);
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance, VOID* pContext);
 
 }  // namespace di_common

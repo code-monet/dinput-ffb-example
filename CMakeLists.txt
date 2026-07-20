@@ -32,4 +32,7 @@ target_include_directories(di_common PUBLIC
 target_link_libraries(di_common PUBLIC dinput8 dxguid)
 
 add_executable(ffb_example src/ffb_example.cpp)
+target_include_directories(ffb_example PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts"
+)
 target_link_libraries(ffb_example PRIVATE di_common)

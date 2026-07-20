@@ -1,5 +1,7 @@
 #include "di_common/di_common.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <iostream>
 #include <vector>
@@ -169,6 +171,40 @@ bool CheckDInputResult(HRESULT hr, const char* functionName) {
     return true;
   }
   return true;
+}
+
+bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
+  std::string normalized = effectName;
+  std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+  normalized.erase(std::remove(normalized.begin(), normalized.end(), '-'),
+                   normalized.end());
+  normalized.erase(std::remove(normalized.begin(), normalized.end(), '_'),
+                   normalized.end());
+
+  if (normalized == "sine") {
+    effectGuid = GUID_Sine;
+    return true;
+  }
+  if (normalized == "square") {
+    effectGuid = GUID_Square;
+    return true;
+  }
+  if (normalized == "sawtoothdown") {
+    effectGuid = GUID_SawtoothDown;
+    return true;
+  }
+  if (normalized == "sawtoothup") {
+    effectGuid = GUID_SawtoothUp;
+    return true;
+  }
+  if (normalized == "triangle") {
+    effectGuid = GUID_Triangle;
+    return true;
+  }
+
+  return false;
 }
 
 bool IsForceFeedbackSupported(IDirectInputDevice8* device) {

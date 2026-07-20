@@ -26,8 +26,11 @@ int main(int argc, char** argv) {
       "n,num_updates",
       "Number of updates to send before stopping. Use 0 to send a single "
       "initial update and then wait for Ctrl+C.",
-      cxxopts::value<std::uint64_t>()->default_value("1000"))("h,help",
-                                                              "Print help");
+      cxxopts::value<std::uint64_t>()->default_value("1000"))(
+      "m,mutate_forces",
+      "If true, mutate the force parameters on each update. If false, keep "
+      "the initial force values and only resend them.",
+      cxxopts::value<bool>()->default_value("false"))("h,help", "Print help");
 
   try {
     auto result = options.parse(argc, argv);
@@ -40,6 +43,7 @@ int main(int argc, char** argv) {
 
     std::string effectName = result["effect"].as<std::string>();
     std::uint64_t numUpdates = result["num_updates"].as<std::uint64_t>();
+    bool mutateForces = result["mutate_forces"].as<bool>();
     GUID effectGuid = di_common::kEffectGuid;
     if (!di_common::ResolveEffectGuid(effectName, effectGuid)) {
       std::cerr << "Unknown effect '" << effectName
@@ -52,9 +56,16 @@ int main(int argc, char** argv) {
 
     std::cout << "Using effect: " << effectName << std::endl;
     if (numUpdates == 0) {
-      std::cout << "Sending one initial update and waiting for Ctrl+C." << std::endl;
+      std::cout << "Sending one initial update and waiting for Ctrl+C."
+                << std::endl;
     } else {
       std::cout << "Sending " << numUpdates << " updates." << std::endl;
+    }
+    if (mutateForces) {
+      std::cout << "Force values will mutate on each update." << std::endl;
+    } else {
+      std::cout << "Force values will remain fixed across updates."
+                << std::endl;
     }
 
     std::string normalizedEffectName =
@@ -108,7 +119,7 @@ int main(int argc, char** argv) {
         if (numUpdates == 0) {
           if (!di_common::BuildEffectParameters(
                   effectName, effect, typeSpecificParams, typeSpecificParamSize,
-                  updateCount)) {
+                  mutateForces ? updateCount : 0)) {
             std::cerr << "Unsupported effect type: " << effectName << std::endl;
             return 2;
           }
@@ -122,13 +133,16 @@ int main(int argc, char** argv) {
           }
         } else {
           while (!g_shouldStop && updateCount < numUpdates) {
+            const std::uint64_t iterationIndex = mutateForces ? updateCount : 0;
             if (!di_common::BuildEffectParameters(
                     effectName, effect, typeSpecificParams,
-                    typeSpecificParamSize, updateCount)) {
-              std::cerr << "Unsupported effect type: " << effectName << std::endl;
+                    typeSpecificParamSize, iterationIndex)) {
+              std::cerr << "Unsupported effect type: " << effectName
+                        << std::endl;
               return 2;
             }
-            hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
+            hr = effectInterface->SetParameters(&effect,
+                                                DIEP_TYPESPECIFICPARAMS);
             if (!di_common::CheckDInputResult(hr, "SetParameters")) {
               return 1;
             }

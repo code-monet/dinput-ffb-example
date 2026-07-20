@@ -50,3 +50,35 @@ DirectInput Force Feedback example code
         named after hte chosen variant and architecture).
     *   Find the compiled executable (e.g., `ffb_example.exe`) and
         double-click it to run.
+
+### Command-line Options
+
+The example supports the following command-line arguments:
+
+*   `-e, --effect <name>`: Select the effect to play. Supported values include
+    `sine`, `square`, `sawtooth-down`, `sawtooth-up`, `triangle`,
+    `constant`, `ramp`, `spring`, `damper`, `friction`, and `inertia`.
+*   `-n, --num_updates <count>`: Send this many updates before stopping. Use `0`
+    to send a single initial update and then wait for Ctrl+C.
+*   `-m, --mutate_forces`: If provided, mutate the force values on each update.
+    If omitted, the initial force values are reused for each update.
+
+### Example Commands
+
+Run spring with no updates indefinitely:
+
+```bash
+ffb_example.exe --effect spring --num_updates 0
+```
+
+Run constant with mutating updates 2000 times:
+
+```bash
+ffb_example.exe --effect constant --num_updates 2000 --mutate_forces
+```
+
+Run sine without mutation but with updates 5000 times:
+
+```bash
+ffb_example.exe --effect sine --num_updates 5000
+```

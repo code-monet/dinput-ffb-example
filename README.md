@@ -37,7 +37,7 @@ DirectInput Force Feedback example code
     *   Go to the `Build` menu and select `Build Solution` (or press `F7`).
     *   Check the `Output` window in Visual Studio for any compilation errors.
 
-## Running the Example
+## Running the Examples
 
 1.  **Ensure Device is Connected:** Make sure your force feedback device is
     plugged in and recognized by Windows.
@@ -51,7 +51,14 @@ DirectInput Force Feedback example code
     *   Find the compiled executable (e.g., `ffb_example.exe`) and
         double-click it to run.
 
-### Command-line Options
+### FFB Example
+
+Allows running a single force feedback effect, with the option to run it with varied gains
+or fixed. Can also be used to benchmark the device's command update rate.
+
+The code is at [`ffb_example.cpp`](./src/ffb_example.cpp).
+
+#### Command-line Options
 
 The example supports the following command-line arguments:
 
@@ -66,7 +73,7 @@ The example supports the following command-line arguments:
     `0` to `100`. The value is clamped to that range and defaults to `25`.
 *   `-h, --help`: Print the command-line help text.
 
-### Example Commands
+#### Example Commands
 
 Run spring with no updates indefinitely:
 
@@ -85,3 +92,11 @@ Run sine without mutation but with updates 5000 times:
 ```bash
 ffb_example.exe --effect sine --num_updates 5000
 ```
+
+### Emulated Spring
+
+This example reads the X-axis position from a connected DirectInput device and converts
+it into a scaled constant-force output. It prints the raw X-axis value and the scaled force
+value to the console, and continues updating until Ctrl+C is pressed.
+
+The code is at [`emulated_spring.cpp`](./src/emulated_spring.cpp).

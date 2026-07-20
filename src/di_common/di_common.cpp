@@ -15,6 +15,18 @@ int ClampStrengthPercentage(int strengthPercentage) {
   return max(0, min(100, strengthPercentage));
 }
 
+bool ReadXAxisValue(IDirectInputDevice8* device, LONG& rawXAxisValue) {
+  DIJOYSTATE2 state;
+  ZeroMemory(&state, sizeof(state));
+  HRESULT hr = device->GetDeviceState(sizeof(state), &state);
+  if (!CheckDInputResult(hr, "GetDeviceState")) {
+    return false;
+  }
+
+  rawXAxisValue = state.lX;
+  return true;
+}
+
 const GUID kEffectGuid = GUID_Sine;
 const int kNumUpdates = 1000;
 const char kIgnoreDeviceWithName[] = "vJoy Device";

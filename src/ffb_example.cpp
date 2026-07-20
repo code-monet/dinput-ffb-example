@@ -12,7 +12,8 @@ int main(int argc, char** argv) {
                            "Play a DirectInput force feedback effect");
   options.add_options()("e,effect",
                         "Effect to play: sine, square, sawtooth-down, "
-                        "sawtooth-up, triangle",
+                        "sawtooth-up, triangle, constant, ramp, spring, "
+                        "damper, friction, inertia",
                         cxxopts::value<std::string>()->default_value("sine"))(
       "h,help", "Print help");
 
@@ -28,12 +29,16 @@ int main(int argc, char** argv) {
     if (!di_common::ResolveEffectGuid(effectName, effectGuid)) {
       std::cerr << "Unknown effect '" << effectName
                 << "'. Expected one of: sine, square, sawtooth-down, "
-                   "sawtooth-up, triangle"
+                   "sawtooth-up, triangle, constant, ramp, spring, damper, "
+                   "friction, inertia"
                 << std::endl;
       return 2;
     }
 
     std::cout << "Using effect: " << effectName << std::endl;
+
+    std::string normalizedEffectName =
+        di_common::NormalizeEffectName(effectName);
 
     IDirectInput8* directInput = nullptr;
     std::vector<IDirectInputDevice8*> forceFeedbackDevices;
@@ -61,30 +66,13 @@ int main(int argc, char** argv) {
               << " force feedback devices." << std::endl;
     for (IDirectInputDevice8* device : forceFeedbackDevices) {
     DIEFFECT effect;
-    ZeroMemory(&effect, sizeof(effect));
-    effect.dwSize = sizeof(DIEFFECT);
-    effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
-    effect.dwDuration = INFINITE;
-    effect.dwSamplePeriod = 0;
-    effect.dwGain = DI_FFNOMINALMAX / 4;
-    effect.dwTriggerButton = DIEB_NOTRIGGER;
-    effect.dwTriggerRepeatInterval = 0;
-    effect.cAxes = 1;
-    DWORD axes[1] = {DIJOFS_X};
-    effect.rgdwAxes = axes;
-
-    LONG direction[1] = {1};
-    effect.rglDirection = direction;
-
-    DIPERIODIC periodic;
-    ZeroMemory(&periodic, sizeof(periodic));
-    periodic.dwMagnitude = DI_FFNOMINALMAX;
-    periodic.lOffset = 0;
-    periodic.dwPhase = 0;
-    periodic.dwPeriod = 500 * 1000;
-
-    effect.cbTypeSpecificParams = sizeof(DIPERIODIC);
-    effect.lpvTypeSpecificParams = &periodic;
+    void* typeSpecificParams = nullptr;
+    DWORD typeSpecificParamSize = 0;
+    if (!di_common::BuildEffectParameters(effectName, effect, typeSpecificParams,
+                                         typeSpecificParamSize, 0)) {
+      std::cerr << "Unsupported effect type: " << effectName << std::endl;
+      return 2;
+    }
 
     IDirectInputEffect* effectInterface = nullptr;
     hr = device->CreateEffect(effectGuid, &effect, &effectInterface, nullptr);
@@ -97,7 +85,12 @@ int main(int argc, char** argv) {
       }
       const auto start_time = std::chrono::high_resolution_clock::now();
       for (int i = 0; i < di_common::kNumUpdates; ++i) {
-        periodic.dwMagnitude = (i * 10) % 10000;
+        if (!di_common::BuildEffectParameters(effectName, effect,
+                                             typeSpecificParams,
+                                             typeSpecificParamSize, i)) {
+          std::cerr << "Unsupported effect type: " << effectName << std::endl;
+          return 2;
+        }
         hr = effectInterface->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
         if (!di_common::CheckDInputResult(hr, "SetParameters")) {
           return 1;

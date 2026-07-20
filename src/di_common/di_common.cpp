@@ -173,7 +173,7 @@ bool CheckDInputResult(HRESULT hr, const char* functionName) {
   return true;
 }
 
-bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
+std::string NormalizeEffectName(const std::string& effectName) {
   std::string normalized = effectName;
   std::transform(normalized.begin(), normalized.end(), normalized.begin(),
                  [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -182,6 +182,11 @@ bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
                    normalized.end());
   normalized.erase(std::remove(normalized.begin(), normalized.end(), '_'),
                    normalized.end());
+  return normalized;
+}
+
+bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
+  std::string normalized = NormalizeEffectName(effectName);
 
   if (normalized == "sine") {
     effectGuid = GUID_Sine;
@@ -203,8 +208,111 @@ bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
     effectGuid = GUID_Triangle;
     return true;
   }
+  if (normalized == "constant") {
+    effectGuid = GUID_ConstantForce;
+    return true;
+  }
+  if (normalized == "ramp") {
+    effectGuid = GUID_RampForce;
+    return true;
+  }
+  if (normalized == "spring") {
+    effectGuid = GUID_Spring;
+    return true;
+  }
+  if (normalized == "damper") {
+    effectGuid = GUID_Damper;
+    return true;
+  }
+  if (normalized == "friction") {
+    effectGuid = GUID_Friction;
+    return true;
+  }
+  if (normalized == "inertia") {
+    effectGuid = GUID_Inertia;
+    return true;
+  }
 
   return false;
+}
+
+bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
+                           void*& typeSpecificParams, DWORD& typeSpecificParamSize,
+                           int iterationIndex) {
+  std::string normalized = NormalizeEffectName(effectName);
+
+  static DIPERIODIC periodic;
+  static DICONSTANTFORCE constantForce;
+  static DIRAMPFORCE rampForce;
+  static DICONDITION condition;
+  static DWORD axes[1] = {DIJOFS_X};
+  static LONG direction[1] = {1};
+
+  ZeroMemory(&effect, sizeof(effect));
+  effect.dwSize = sizeof(DIEFFECT);
+  effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
+  effect.dwDuration = INFINITE;
+  effect.dwSamplePeriod = 0;
+  effect.dwGain = DI_FFNOMINALMAX / 4;
+  effect.dwTriggerButton = DIEB_NOTRIGGER;
+  effect.dwTriggerRepeatInterval = 0;
+  effect.cAxes = 1;
+  effect.rgdwAxes = axes;
+  effect.rglDirection = direction;
+
+  if (normalized == "sine" || normalized == "square" ||
+      normalized == "sawtoothdown" || normalized == "sawtoothup" ||
+      normalized == "triangle") {
+    ZeroMemory(&periodic, sizeof(periodic));
+    periodic.dwMagnitude = DI_FFNOMINALMAX;
+    periodic.lOffset = 0;
+    periodic.dwPhase = 0;
+    periodic.dwPeriod = 500 * 1000;
+    typeSpecificParams = &periodic;
+    typeSpecificParamSize = sizeof(periodic);
+  } else if (normalized == "constant") {
+    ZeroMemory(&constantForce, sizeof(constantForce));
+    constantForce.lMagnitude = DI_FFNOMINALMAX / 2;
+    typeSpecificParams = &constantForce;
+    typeSpecificParamSize = sizeof(constantForce);
+  } else if (normalized == "ramp") {
+    ZeroMemory(&rampForce, sizeof(rampForce));
+    rampForce.lStart = -DI_FFNOMINALMAX / 2;
+    rampForce.lEnd = DI_FFNOMINALMAX / 2;
+    typeSpecificParams = &rampForce;
+    typeSpecificParamSize = sizeof(rampForce);
+  } else if (normalized == "spring" || normalized == "damper" ||
+             normalized == "friction" || normalized == "inertia") {
+    ZeroMemory(&condition, sizeof(condition));
+    condition.lOffset = 0;
+    condition.lPositiveCoefficient = DI_FFNOMINALMAX / 4;
+    condition.lNegativeCoefficient = -DI_FFNOMINALMAX / 4;
+    condition.dwPositiveSaturation = DI_FFNOMINALMAX / 2;
+    condition.dwNegativeSaturation = DI_FFNOMINALMAX / 2;
+    condition.lDeadBand = 0;
+    typeSpecificParams = &condition;
+    typeSpecificParamSize = sizeof(condition);
+  } else {
+    return false;
+  }
+
+  if (normalized == "sine" || normalized == "square" ||
+      normalized == "sawtoothdown" || normalized == "sawtoothup" ||
+      normalized == "triangle") {
+    periodic.dwMagnitude = (iterationIndex * 10) % 10000;
+  } else if (normalized == "constant") {
+    constantForce.lMagnitude = static_cast<LONG>((iterationIndex * 20) % 20000 - 10000);
+  } else if (normalized == "ramp") {
+    rampForce.lStart = -DI_FFNOMINALMAX / 2;
+    rampForce.lEnd = static_cast<LONG>((iterationIndex * 10) % 10000);
+  } else if (normalized == "spring" || normalized == "damper" ||
+             normalized == "friction" || normalized == "inertia") {
+    condition.lOffset = static_cast<LONG>((iterationIndex % 5) * 1000);
+  }
+
+  effect.cbTypeSpecificParams = typeSpecificParamSize;
+  effect.lpvTypeSpecificParams = typeSpecificParams;
+  return true;
 }
 
 bool IsForceFeedbackSupported(IDirectInputDevice8* device) {

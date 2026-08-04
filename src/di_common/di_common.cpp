@@ -353,8 +353,8 @@ bool IsForceFeedbackSupported(IDirectInputDevice8 *device) {
   return CheckDInputResult(hr, "GetEffectInfo");
 }
 
-BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
-                                  VOID* pContext) {
+BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE *instance,
+                                  VOID *pContext) {
   std::cout << "Found device: " << instance->tszInstanceName << std::endl;
   if (strstr(instance->tszInstanceName, kIgnoreDeviceWithName)) {
     std::cout
@@ -362,7 +362,7 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
         << std::endl;
     return DIENUM_CONTINUE;
   }
-  auto* context = reinterpret_cast<EnumDevicesContext*>(pContext);
+  auto *context = reinterpret_cast<EnumDevicesContext *>(pContext);
   if (!context || !context->directInput || !context->devices) {
     std::cerr << "  -> ERROR: Invalid EnumDevicesContext provided!"
               << std::endl;
@@ -375,22 +375,24 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
     return DIENUM_STOP;
   }
 
-  IDirectInputDevice8* device = nullptr;
-  HRESULT hr =
-      context->directInput->CreateDevice(instance->guidInstance, &device, nullptr);
+  IDirectInputDevice8 *device = nullptr;
+  HRESULT hr = context->directInput->CreateDevice(instance->guidInstance,
+                                                  &device, nullptr);
   if (CheckDInputResult(hr, "CreateDevice")) {
+    if (!CheckDInputResult(device->SetDataFormat(&c_dfDIJoystick2),
+                           "SetDataFormat") ||
+        !CheckDInputResult(device->SetCooperativeLevel(
+                               hwnd, DISCL_BACKGROUND | DISCL_EXCLUSIVE),
+                           "SetCooperativeLevel") ||
+        !CheckDInputResult(device->Acquire(), "Acquire")) {
+      device->Release();
+      return DIENUM_CONTINUE;
+    }
+
     if (IsForceFeedbackSupported(device)) {
-      if (!CheckDInputResult(device->SetDataFormat(&c_dfDIJoystick2),
-                             "SetDataFormat") ||
-          !CheckDInputResult(device->SetCooperativeLevel(
-                                 hwnd, DISCL_BACKGROUND | DISCL_EXCLUSIVE),
-                             "SetCooperativeLevel") ||
-          !CheckDInputResult(device->Acquire(), "Acquire")) {
-        device->Release();
-        return DIENUM_CONTINUE;
-      }
       context->devices->push_back(device);
     } else {
+      device->Unacquire();
       device->Release();
     }
   }

@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include <cxxopts.hpp>
+
 namespace di_common {
 
 extern const GUID kSineEffectGuid;
@@ -29,9 +31,12 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
                            void*& typeSpecificParams, DWORD& typeSpecificParamSize,
                            std::uint64_t iterationIndex,
                            int strengthPercentage);
+void AddCommonOptions(cxxopts::Options& options);
+
 struct EnumDevicesContext {
   IDirectInput8* directInput = nullptr;
   std::vector<IDirectInputDevice8*>* devices = nullptr;
+  std::string ignoreDevicePattern = kIgnoreDeviceWithName;
 };
 
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance, VOID* pContext);

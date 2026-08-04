@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstring>
 #include <iostream>
+#include <regex>
 
 using std::max;
 using std::min;
@@ -353,21 +354,37 @@ bool IsForceFeedbackSupported(IDirectInputDevice8 *device) {
   return CheckDInputResult(hr, "GetEffectInfo");
 }
 
+void AddCommonOptions(cxxopts::Options &options) {
+  options.add_options()("h,help", "Print help")(
+      "i,ignore_device",
+      "Device name regex pattern to ignore during enumeration.",
+      cxxopts::value<std::string>()->default_value(kIgnoreDeviceWithName));
+}
+
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE *instance,
                                   VOID *pContext) {
   std::cout << "Found device: " << instance->tszInstanceName << std::endl;
-  if (strstr(instance->tszInstanceName, kIgnoreDeviceWithName)) {
-    std::cout
-        << "  -> Ignoring device because in ignore list [kIgnoreDeviceWithName]"
-        << std::endl;
-    return DIENUM_CONTINUE;
-  }
   auto *context = reinterpret_cast<EnumDevicesContext *>(pContext);
   if (!context || !context->directInput || !context->devices) {
     std::cerr << "  -> ERROR: Invalid EnumDevicesContext provided!"
               << std::endl;
     return DIENUM_STOP;
   }
+
+  if (!context->ignoreDevicePattern.empty()) {
+    try {
+      std::regex re(context->ignoreDevicePattern, std::regex_constants::icase);
+      if (std::regex_search(instance->tszInstanceName, re)) {
+        std::cout << "  -> Ignoring device because it matches ignore pattern ["
+                  << context->ignoreDevicePattern << "]" << std::endl;
+        return DIENUM_CONTINUE;
+      }
+    } catch (const std::regex_error &e) {
+      std::cerr << "  -> ERROR: Invalid regex pattern for ignore_device: "
+                << e.what() << std::endl;
+    }
+  }
+
   HWND hwnd = GetHwnd();
   if (!hwnd) {
     std::cerr << "  -> ERROR: Could not get console window handle!"

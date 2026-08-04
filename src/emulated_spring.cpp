@@ -12,7 +12,26 @@ volatile std::sig_atomic_t g_shouldStop = 0;
 void HandleSignal(int) { g_shouldStop = 1; }
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
+  cxxopts::Options options(
+      "emulated_spring",
+      "Emulate a spring effect using DirectInput constant force");
+  di_common::AddCommonOptions(options);
+
+  std::string ignoreDevicePattern;
+  try {
+    auto result = options.parse(argc, argv);
+    if (result.count("help")) {
+      std::cout << options.help() << std::endl;
+      return 0;
+    }
+    ignoreDevicePattern = result["ignore_device"].as<std::string>();
+  } catch (const cxxopts::exceptions::exception &ex) {
+    std::cerr << ex.what() << std::endl;
+    std::cerr << options.help() << std::endl;
+    return 2;
+  }
+
   std::signal(SIGINT, HandleSignal);
 
   IDirectInput8 *directInput = nullptr;
@@ -29,10 +48,11 @@ int main() {
     return 1;
   }
 
-  di_common::EnumDevicesContext enumContext{directInput, &forceFeedbackDevices};
-  hr = directInput->EnumDevices(
-      DI8DEVCLASS_GAMECTRL, di_common::EnumDevicesCallback, &enumContext,
-      DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+  di_common::EnumDevicesContext enumContext{
+      directInput, &forceFeedbackDevices, ignoreDevicePattern};
+  hr = directInput->EnumDevices(DI8DEVCLASS_GAMECTRL,
+                                di_common::EnumDevicesCallback, &enumContext,
+                                DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
   if (!di_common::CheckDInputResult(hr, "EnumDevices")) {
     directInput->Release();
     return 1;
@@ -60,7 +80,8 @@ int main() {
 
     GUID effectGuid = di_common::kSineEffectGuid;
     if (!di_common::ResolveEffectGuid("constant", effectGuid)) {
-      std::cerr << "Failed to resolve constant-force effect GUID." << std::endl;
+      std::cerr << "Failed to resolve constant-force effect GUID."
+                << std::endl;
       device->Release();
       directInput->Release();
       return 1;
@@ -74,7 +95,8 @@ int main() {
       return 1;
     }
 
-    if (!di_common::CheckDInputResult(effectInterface->Start(1, 0), "Start")) {
+    if (!di_common::CheckDInputResult(effectInterface->Start(1, 0),
+                                      "Start")) {
       effectInterface->Release();
       device->Release();
       directInput->Release();
@@ -104,8 +126,8 @@ int main() {
       effect.cbTypeSpecificParams = sizeof(constantForce);
       effect.lpvTypeSpecificParams = &constantForce;
 
-      hr = effectInterface->SetParameters(&effect,
-                                          DIEP_GAIN | DIEP_TYPESPECIFICPARAMS);
+      hr = effectInterface->SetParameters(
+          &effect, DIEP_GAIN | DIEP_TYPESPECIFICPARAMS);
       if (!di_common::CheckDInputResult(hr, "SetParameters")) {
         break;
       }

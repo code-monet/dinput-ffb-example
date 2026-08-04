@@ -1,11 +1,8 @@
 #include <algorithm>
 #include <chrono>
 #include <csignal>
-#include <cstdint>
 #include <iostream>
-#include <string>
 #include <thread>
-#include <vector>
 
 #include "di_common/di_common.h"
 
@@ -13,17 +10,17 @@ namespace {
 volatile std::sig_atomic_t g_shouldStop = 0;
 
 void HandleSignal(int) { g_shouldStop = 1; }
-}  // namespace
+} // namespace
 
 int main() {
   std::signal(SIGINT, HandleSignal);
 
-  IDirectInput8* directInput = nullptr;
-  std::vector<IDirectInputDevice8*> forceFeedbackDevices;
+  IDirectInput8 *directInput = nullptr;
+  std::vector<IDirectInputDevice8 *> forceFeedbackDevices;
 
   HRESULT hr =
       DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-                         IID_IDirectInput8, (void**)&directInput, nullptr);
+                         IID_IDirectInput8, (void **)&directInput, nullptr);
   if (!di_common::CheckDInputResult(hr, "DirectInput8Create")) {
     return 1;
   }
@@ -32,9 +29,10 @@ int main() {
     return 1;
   }
 
+  di_common::EnumDevicesContext enumContext{directInput, &forceFeedbackDevices};
   hr = directInput->EnumDevices(
-      DI8DEVCLASS_GAMECTRL, di_common::EnumDevicesCallback,
-      &forceFeedbackDevices, DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+      DI8DEVCLASS_GAMECTRL, di_common::EnumDevicesCallback, &enumContext,
+      DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
   if (!di_common::CheckDInputResult(hr, "EnumDevices")) {
     directInput->Release();
     return 1;
@@ -43,11 +41,11 @@ int main() {
   std::cout << "Found " << forceFeedbackDevices.size()
             << " force feedback devices." << std::endl;
 
-  for (IDirectInputDevice8* device : forceFeedbackDevices) {
+  for (IDirectInputDevice8 *device : forceFeedbackDevices) {
     std::cout << "Using device for emulated spring output." << std::endl;
 
     DIEFFECT effect;
-    void* typeSpecificParams = nullptr;
+    void *typeSpecificParams = nullptr;
     DWORD typeSpecificParamSize = 0;
 
     if (!di_common::BuildEffectParameters("constant", effect,
@@ -68,7 +66,7 @@ int main() {
       return 1;
     }
 
-    IDirectInputEffect* effectInterface = nullptr;
+    IDirectInputEffect *effectInterface = nullptr;
     hr = device->CreateEffect(effectGuid, &effect, &effectInterface, nullptr);
     if (!di_common::CheckDInputResult(hr, "CreateEffect")) {
       device->Release();

@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <vector>
 
 #include "di_common/di_common.h"
 
@@ -13,9 +12,9 @@ namespace {
 volatile std::sig_atomic_t g_shouldStop = 0;
 
 void HandleSignal(int) { g_shouldStop = 1; }
-}  // namespace
+} // namespace
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   cxxopts::Options options("ffb_example",
                            "Play a DirectInput force feedback effect");
   options.add_options()("e,effect",
@@ -79,12 +78,12 @@ int main(int argc, char** argv) {
     std::string normalizedEffectName =
         di_common::NormalizeEffectName(effectName);
 
-    IDirectInput8* directInput = nullptr;
-    std::vector<IDirectInputDevice8*> forceFeedbackDevices;
+    IDirectInput8 *directInput = nullptr;
+    std::vector<IDirectInputDevice8 *> forceFeedbackDevices;
 
     HRESULT hr =
         DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-                           IID_IDirectInput8, (void**)&directInput, nullptr);
+                           IID_IDirectInput8, (void **)&directInput, nullptr);
     if (!di_common::CheckDInputResult(hr, "DirectInput8Create")) {
       return 1;
     } else if (!directInput) {
@@ -92,9 +91,10 @@ int main(int argc, char** argv) {
       return 1;
     }
 
+    di_common::EnumDevicesContext enumContext{directInput, &forceFeedbackDevices};
     hr = directInput->EnumDevices(
-        DI8DEVCLASS_GAMECTRL, di_common::EnumDevicesCallback,
-        &forceFeedbackDevices, DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+        DI8DEVCLASS_GAMECTRL, di_common::EnumDevicesCallback, &enumContext,
+        DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
     if (!di_common::CheckDInputResult(hr, "EnumDevices")) {
       directInput->Release();
       return 1;
@@ -102,9 +102,9 @@ int main(int argc, char** argv) {
 
     std::cout << "Found " << forceFeedbackDevices.size()
               << " force feedback devices." << std::endl;
-    for (IDirectInputDevice8* device : forceFeedbackDevices) {
+    for (IDirectInputDevice8 *device : forceFeedbackDevices) {
       DIEFFECT effect;
-      void* typeSpecificParams = nullptr;
+      void *typeSpecificParams = nullptr;
       DWORD typeSpecificParamSize = 0;
       if (!di_common::BuildEffectParameters(
               effectName, effect, typeSpecificParams, typeSpecificParamSize, 0,
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
         return 2;
       }
 
-      IDirectInputEffect* effectInterface = nullptr;
+      IDirectInputEffect *effectInterface = nullptr;
       hr = device->CreateEffect(effectGuid, &effect, &effectInterface, nullptr);
       if (!di_common::CheckDInputResult(hr, "CreateEffect")) {
         return 1;
@@ -142,8 +142,7 @@ int main(int argc, char** argv) {
           }
         } else {
           while (!g_shouldStop && updateCount < numUpdates) {
-            const std::uint64_t iterationIndex =
-                mutateForces ? updateCount : 0;
+            const std::uint64_t iterationIndex = mutateForces ? updateCount : 0;
             if (!di_common::BuildEffectParameters(
                     effectName, effect, typeSpecificParams,
                     typeSpecificParamSize, iterationIndex,
@@ -181,7 +180,7 @@ int main(int argc, char** argv) {
     }
     directInput->Release();
     return 0;
-  } catch (const cxxopts::exceptions::exception& ex) {
+  } catch (const cxxopts::exceptions::exception &ex) {
     std::cerr << ex.what() << std::endl;
     std::cerr << options.help() << std::endl;
     return 2;

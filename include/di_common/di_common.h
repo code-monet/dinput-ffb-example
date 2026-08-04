@@ -29,6 +29,11 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
                            void*& typeSpecificParams, DWORD& typeSpecificParamSize,
                            std::uint64_t iterationIndex,
                            int strengthPercentage);
+struct EnumDevicesContext {
+  IDirectInput8* directInput = nullptr;
+  std::vector<IDirectInputDevice8*>* devices = nullptr;
+};
+
 BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance, VOID* pContext);
 
 }  // namespace di_common

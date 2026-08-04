@@ -4,7 +4,6 @@
 #include <cctype>
 #include <cstring>
 #include <iostream>
-#include <vector>
 
 using std::max;
 using std::min;
@@ -15,7 +14,7 @@ int ClampStrengthPercentage(int strengthPercentage) {
   return max(0, min(100, strengthPercentage));
 }
 
-bool ReadXAxisValue(IDirectInputDevice8* device, LONG& rawXAxisValue) {
+bool ReadXAxisValue(IDirectInputDevice8 *device, LONG &rawXAxisValue) {
   DIJOYSTATE2 state;
   ZeroMemory(&state, sizeof(state));
   HRESULT hr = device->GetDeviceState(sizeof(state), &state);
@@ -41,144 +40,144 @@ HWND GetHwnd() {
   return g_hwnd;
 }
 
-const char* DInputErrorToString(HRESULT hr) {
+const char *DInputErrorToString(HRESULT hr) {
   switch (hr) {
-    case DI_OK:
-      return "DI_OK: The operation completed successfully.";
-    case S_FALSE:
-      return "S_FALSE: Could be one of: DI_NOTATTACHED, DI_BUFFEROVERFLOW, "
-             "DI_PROPNOEFFECT, DI_NOEFFECT.";
-    case DI_POLLEDDEVICE:
-      return "DI_POLLEDDEVICE: The device is a polled device. As a result, "
-             "device buffering will not collect any data and event "
-             "notifications will not be signalled until GetDeviceState is "
-             "called.";
-    case DI_DOWNLOADSKIPPED:
-      return "DI_DOWNLOADSKIPPED: The parameters of the effect were "
-             "successfully updated, but the effect was not downloaded because "
-             "the device is not exclusively acquired or because the "
-             "DIEP_NODOWNLOAD flag was passed.";
-    case DI_EFFECTRESTARTED:
-      return "DI_EFFECTRESTARTED: The parameters of the effect were "
-             "successfully updated, but in order to change the parameters, "
-             "the effect needed to be restarted.";
-    case DI_TRUNCATED:
-      return "DI_TRUNCATED: The parameters of the effect were successfully "
-             "updated, but some of them were beyond the capabilities of the "
-             "device and were truncated.";
-    case DI_SETTINGSNOTSAVED:
-      return "DI_SETTINGSNOTSAVED: The settings have been successfully applied "
-             "but could not be persisted.";
-    case DI_TRUNCATEDANDRESTARTED:
-      return "DI_TRUNCATEDANDRESTARTED: Equal to DI_EFFECTRESTARTED | "
-             "DI_TRUNCATED.";
-    case DI_WRITEPROTECT:
-      return "DI_WRITEPROTECT: A SUCCESS code indicating that settings cannot "
-             "be modified.";
-    case DIERR_OLDDIRECTINPUTVERSION:
-      return "DIERR_OLDDIRECTINPUTVERSION: The application requires a newer "
-             "version of DirectInput.";
-    case DIERR_BETADIRECTINPUTVERSION:
-      return "DIERR_BETADIRECTINPUTVERSION: The application was written for an "
-             "unsupported prerelease version of DirectInput.";
-    case DIERR_BADDRIVERVER:
-      return "DIERR_BADDRIVERVER: The object could not be created due to an "
-             "incompatible driver version or mismatched or incomplete driver "
-             "components.";
-    case DIERR_DEVICENOTREG:
-      return "DIERR_DEVICENOTREG (REGDB_E_CLASSNOTREG): The device or device "
-             "instance or effect is not registered with DirectInput.";
-    case DIERR_NOTFOUND:
-      return "DIERR_NOTFOUND/OBJECTNOTFOUND (ERROR_FILE_NOT_FOUND): The "
-             "requested object does not exist.";
-    case DIERR_INVALIDPARAM:
-      return "DIERR_INVALIDPARAM (E_INVALIDARG): An invalid parameter was "
-             "passed to the returning function, or the object was not in a "
-             "state that admitted the function to be called.";
-    case DIERR_NOINTERFACE:
-      return "DIERR_NOINTERFACE (E_NOINTERFACE): The specified interface is "
-             "not supported by the object.";
-    case DIERR_GENERIC:
-      return "DIERR_GENERIC (E_FAIL): An undetermined error occurred inside "
-             "the DInput subsystem.";
-    case DIERR_OUTOFMEMORY:
-      return "DIERR_OUTOFMEMORY (E_OUTOFMEMORY): The DInput subsystem couldn't "
-             "allocate sufficient memory to complete the caller's request.";
-    case DIERR_UNSUPPORTED:
-      return "DIERR_UNSUPPORTED (E_NOTIMPL): The function called is not "
-             "supported at this time.";
-    case DIERR_NOTINITIALIZED:
-      return "DIERR_NOTINITIALIZED (ERROR_NOT_READY): This object has not been "
-             "initialized.";
-    case DIERR_ALREADYINITIALIZED:
-      return "DIERR_ALREADYINITIALIZED (ERROR_ALREADY_INITIALIZED): This "
-             "object is already initialized.";
-    case DIERR_NOAGGREGATION:
-      return "DIERR_NOAGGREGATION (CLASS_E_NOAGGREGATION): This object does "
-             "not support aggregation.";
-    case E_ACCESSDENIED:
-      return "E_ACCESSDENIED: Access Denied. Could be DIERR_OTHERAPPHASPRIO "
-             "(another app has priority), DIERR_READONLY (property cannot be "
-             "changed), or DIERR_HANDLEEXISTS (event notification already "
-             "exists).";
-    case DIERR_INPUTLOST:
-      return "DIERR_INPUTLOST (ERROR_READ_FAULT): Access to the device has "
-             "been lost. It must be re-acquired.";
-    case DIERR_ACQUIRED:
-      return "DIERR_ACQUIRED (ERROR_BUSY): The operation cannot be performed "
-             "while the device is acquired.";
-    case DIERR_NOTACQUIRED:
-      return "DIERR_NOTACQUIRED (ERROR_INVALID_ACCESS): The operation cannot "
-             "be performed unless the device is acquired.";
-    case E_PENDING:
-      return "E_PENDING: Data is not yet available.";
-    case DIERR_INSUFFICIENTPRIVS:
-      return "DIERR_INSUFFICIENTPRIVS: Unable to acquire privileges needed, "
-             "e.g., change joystick configuration.";
-    case DIERR_DEVICEFULL:
-      return "DIERR_DEVICEFULL: The device is full.";
-    case DIERR_MOREDATA:
-      return "DIERR_MOREDATA: Not all the requested information fit into the "
-             "buffer.";
-    case DIERR_NOTDOWNLOADED:
-      return "DIERR_NOTDOWNLOADED: The effect is not downloaded.";
-    case DIERR_HASEFFECTS:
-      return "DIERR_HASEFFECTS: The device cannot be reinitialized because "
-             "there are still effects attached to it.";
-    case DIERR_NOTEXCLUSIVEACQUIRED:
-      return "DIERR_NOTEXCLUSIVEACQUIRED: The operation cannot be performed "
-             "unless the device is acquired in DISCL_EXCLUSIVE mode.";
-    case DIERR_INCOMPLETEEFFECT:
-      return "DIERR_INCOMPLETEEFFECT: The effect could not be downloaded "
-             "because essential information is missing (e.g., no axes "
-             "associated).";
-    case DIERR_NOTBUFFERED:
-      return "DIERR_NOTBUFFERED: Attempted to read buffered device data from a "
-             "device that is not buffered.";
-    case DIERR_EFFECTPLAYING:
-      return "DIERR_EFFECTPLAYING: An attempt was made to modify parameters of "
-             "an effect while it is playing. Not all hardware devices support "
-             "this.";
-    case DIERR_UNPLUGGED:
-      return "DIERR_UNPLUGGED: The operation could not be completed because "
-             "the device is not plugged in.";
-    case DIERR_REPORTFULL:
-      return "DIERR_REPORTFULL: SendDeviceData failed because more information "
-             "was requested than can be sent (e.g., limit on simultaneous "
-             "buttons).";
-    case DIERR_MAPFILEFAIL:
-      return "DIERR_MAPFILEFAIL: A mapper file function failed because reading "
-             "or writing the user or IHV settings file failed.";
-    case E_HANDLE:
-      return "E_HANDLE: Invalid handle.";
-    case E_POINTER:
-      return "E_POINTER: Invalid pointer.";
-    default:
-      return "Unknown DirectInput HRESULT";
+  case DI_OK:
+    return "DI_OK: The operation completed successfully.";
+  case S_FALSE:
+    return "S_FALSE: Could be one of: DI_NOTATTACHED, DI_BUFFEROVERFLOW, "
+           "DI_PROPNOEFFECT, DI_NOEFFECT.";
+  case DI_POLLEDDEVICE:
+    return "DI_POLLEDDEVICE: The device is a polled device. As a result, "
+           "device buffering will not collect any data and event "
+           "notifications will not be signalled until GetDeviceState is "
+           "called.";
+  case DI_DOWNLOADSKIPPED:
+    return "DI_DOWNLOADSKIPPED: The parameters of the effect were "
+           "successfully updated, but the effect was not downloaded because "
+           "the device is not exclusively acquired or because the "
+           "DIEP_NODOWNLOAD flag was passed.";
+  case DI_EFFECTRESTARTED:
+    return "DI_EFFECTRESTARTED: The parameters of the effect were "
+           "successfully updated, but in order to change the parameters, "
+           "the effect needed to be restarted.";
+  case DI_TRUNCATED:
+    return "DI_TRUNCATED: The parameters of the effect were successfully "
+           "updated, but some of them were beyond the capabilities of the "
+           "device and were truncated.";
+  case DI_SETTINGSNOTSAVED:
+    return "DI_SETTINGSNOTSAVED: The settings have been successfully applied "
+           "but could not be persisted.";
+  case DI_TRUNCATEDANDRESTARTED:
+    return "DI_TRUNCATEDANDRESTARTED: Equal to DI_EFFECTRESTARTED | "
+           "DI_TRUNCATED.";
+  case DI_WRITEPROTECT:
+    return "DI_WRITEPROTECT: A SUCCESS code indicating that settings cannot "
+           "be modified.";
+  case DIERR_OLDDIRECTINPUTVERSION:
+    return "DIERR_OLDDIRECTINPUTVERSION: The application requires a newer "
+           "version of DirectInput.";
+  case DIERR_BETADIRECTINPUTVERSION:
+    return "DIERR_BETADIRECTINPUTVERSION: The application was written for an "
+           "unsupported prerelease version of DirectInput.";
+  case DIERR_BADDRIVERVER:
+    return "DIERR_BADDRIVERVER: The object could not be created due to an "
+           "incompatible driver version or mismatched or incomplete driver "
+           "components.";
+  case DIERR_DEVICENOTREG:
+    return "DIERR_DEVICENOTREG (REGDB_E_CLASSNOTREG): The device or device "
+           "instance or effect is not registered with DirectInput.";
+  case DIERR_NOTFOUND:
+    return "DIERR_NOTFOUND/OBJECTNOTFOUND (ERROR_FILE_NOT_FOUND): The "
+           "requested object does not exist.";
+  case DIERR_INVALIDPARAM:
+    return "DIERR_INVALIDPARAM (E_INVALIDARG): An invalid parameter was "
+           "passed to the returning function, or the object was not in a "
+           "state that admitted the function to be called.";
+  case DIERR_NOINTERFACE:
+    return "DIERR_NOINTERFACE (E_NOINTERFACE): The specified interface is "
+           "not supported by the object.";
+  case DIERR_GENERIC:
+    return "DIERR_GENERIC (E_FAIL): An undetermined error occurred inside "
+           "the DInput subsystem.";
+  case DIERR_OUTOFMEMORY:
+    return "DIERR_OUTOFMEMORY (E_OUTOFMEMORY): The DInput subsystem couldn't "
+           "allocate sufficient memory to complete the caller's request.";
+  case DIERR_UNSUPPORTED:
+    return "DIERR_UNSUPPORTED (E_NOTIMPL): The function called is not "
+           "supported at this time.";
+  case DIERR_NOTINITIALIZED:
+    return "DIERR_NOTINITIALIZED (ERROR_NOT_READY): This object has not been "
+           "initialized.";
+  case DIERR_ALREADYINITIALIZED:
+    return "DIERR_ALREADYINITIALIZED (ERROR_ALREADY_INITIALIZED): This "
+           "object is already initialized.";
+  case DIERR_NOAGGREGATION:
+    return "DIERR_NOAGGREGATION (CLASS_E_NOAGGREGATION): This object does "
+           "not support aggregation.";
+  case E_ACCESSDENIED:
+    return "E_ACCESSDENIED: Access Denied. Could be DIERR_OTHERAPPHASPRIO "
+           "(another app has priority), DIERR_READONLY (property cannot be "
+           "changed), or DIERR_HANDLEEXISTS (event notification already "
+           "exists).";
+  case DIERR_INPUTLOST:
+    return "DIERR_INPUTLOST (ERROR_READ_FAULT): Access to the device has "
+           "been lost. It must be re-acquired.";
+  case DIERR_ACQUIRED:
+    return "DIERR_ACQUIRED (ERROR_BUSY): The operation cannot be performed "
+           "while the device is acquired.";
+  case DIERR_NOTACQUIRED:
+    return "DIERR_NOTACQUIRED (ERROR_INVALID_ACCESS): The operation cannot "
+           "be performed unless the device is acquired.";
+  case E_PENDING:
+    return "E_PENDING: Data is not yet available.";
+  case DIERR_INSUFFICIENTPRIVS:
+    return "DIERR_INSUFFICIENTPRIVS: Unable to acquire privileges needed, "
+           "e.g., change joystick configuration.";
+  case DIERR_DEVICEFULL:
+    return "DIERR_DEVICEFULL: The device is full.";
+  case DIERR_MOREDATA:
+    return "DIERR_MOREDATA: Not all the requested information fit into the "
+           "buffer.";
+  case DIERR_NOTDOWNLOADED:
+    return "DIERR_NOTDOWNLOADED: The effect is not downloaded.";
+  case DIERR_HASEFFECTS:
+    return "DIERR_HASEFFECTS: The device cannot be reinitialized because "
+           "there are still effects attached to it.";
+  case DIERR_NOTEXCLUSIVEACQUIRED:
+    return "DIERR_NOTEXCLUSIVEACQUIRED: The operation cannot be performed "
+           "unless the device is acquired in DISCL_EXCLUSIVE mode.";
+  case DIERR_INCOMPLETEEFFECT:
+    return "DIERR_INCOMPLETEEFFECT: The effect could not be downloaded "
+           "because essential information is missing (e.g., no axes "
+           "associated).";
+  case DIERR_NOTBUFFERED:
+    return "DIERR_NOTBUFFERED: Attempted to read buffered device data from a "
+           "device that is not buffered.";
+  case DIERR_EFFECTPLAYING:
+    return "DIERR_EFFECTPLAYING: An attempt was made to modify parameters of "
+           "an effect while it is playing. Not all hardware devices support "
+           "this.";
+  case DIERR_UNPLUGGED:
+    return "DIERR_UNPLUGGED: The operation could not be completed because "
+           "the device is not plugged in.";
+  case DIERR_REPORTFULL:
+    return "DIERR_REPORTFULL: SendDeviceData failed because more information "
+           "was requested than can be sent (e.g., limit on simultaneous "
+           "buttons).";
+  case DIERR_MAPFILEFAIL:
+    return "DIERR_MAPFILEFAIL: A mapper file function failed because reading "
+           "or writing the user or IHV settings file failed.";
+  case E_HANDLE:
+    return "E_HANDLE: Invalid handle.";
+  case E_POINTER:
+    return "E_POINTER: Invalid pointer.";
+  default:
+    return "Unknown DirectInput HRESULT";
   }
 }
 
-bool CheckDInputResult(HRESULT hr, const char* functionName) {
+bool CheckDInputResult(HRESULT hr, const char *functionName) {
   if (FAILED(hr)) {
     std::cerr << functionName << " failed: " << DInputErrorToString(hr)
               << " (0x" << std::hex << hr << ")" << std::endl;
@@ -192,7 +191,7 @@ bool CheckDInputResult(HRESULT hr, const char* functionName) {
   return true;
 }
 
-std::string NormalizeEffectName(const std::string& effectName) {
+std::string NormalizeEffectName(const std::string &effectName) {
   std::string normalized = effectName;
   std::transform(
       normalized.begin(), normalized.end(), normalized.begin(),
@@ -205,7 +204,7 @@ std::string NormalizeEffectName(const std::string& effectName) {
   return normalized;
 }
 
-bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
+bool ResolveEffectGuid(const std::string &effectName, GUID &effectGuid) {
   std::string normalized = NormalizeEffectName(effectName);
 
   if (normalized == "sine") {
@@ -256,9 +255,9 @@ bool ResolveEffectGuid(const std::string& effectName, GUID& effectGuid) {
   return false;
 }
 
-bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
-                           void*& typeSpecificParams,
-                           DWORD& typeSpecificParamSize,
+bool BuildEffectParameters(const std::string &effectName, DIEFFECT &effect,
+                           void *&typeSpecificParams,
+                           DWORD &typeSpecificParamSize,
                            std::uint64_t iterationIndex,
                            int strengthPercentage) {
   std::string normalized = NormalizeEffectName(effectName);
@@ -347,7 +346,7 @@ bool BuildEffectParameters(const std::string& effectName, DIEFFECT& effect,
   return true;
 }
 
-bool IsForceFeedbackSupported(IDirectInputDevice8* device) {
+bool IsForceFeedbackSupported(IDirectInputDevice8 *device) {
   DIEFFECTINFO effectInfo;
   effectInfo.dwSize = sizeof(DIEFFECTINFO);
   HRESULT hr = device->GetEffectInfo(&effectInfo, kSineEffectGuid);
@@ -363,29 +362,22 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
         << std::endl;
     return DIENUM_CONTINUE;
   }
-  auto devices = reinterpret_cast<std::vector<IDirectInputDevice8*>*>(pContext);
-  IDirectInput8* directInput = nullptr;
+  auto* context = reinterpret_cast<EnumDevicesContext*>(pContext);
+  if (!context || !context->directInput || !context->devices) {
+    std::cerr << "  -> ERROR: Invalid EnumDevicesContext provided!"
+              << std::endl;
+    return DIENUM_STOP;
+  }
   HWND hwnd = GetHwnd();
   if (!hwnd) {
     std::cerr << "  -> ERROR: Could not get console window handle!"
               << std::endl;
-    if (directInput) {
-      directInput->Release();
-    }
-    return false;
-  }
-  HRESULT hr =
-      DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION,
-                         IID_IDirectInput8, (void**)&directInput, nullptr);
-  if (!CheckDInputResult(hr, "DirectInput8Create")) {
-    return DIENUM_STOP;
-  } else if (!directInput) {
-    std::cerr << "directInput unexpectedly null" << std::endl;
     return DIENUM_STOP;
   }
 
   IDirectInputDevice8* device = nullptr;
-  hr = directInput->CreateDevice(instance->guidInstance, &device, nullptr);
+  HRESULT hr =
+      context->directInput->CreateDevice(instance->guidInstance, &device, nullptr);
   if (CheckDInputResult(hr, "CreateDevice")) {
     if (IsForceFeedbackSupported(device)) {
       if (!CheckDInputResult(device->SetDataFormat(&c_dfDIJoystick2),
@@ -395,15 +387,14 @@ BOOL CALLBACK EnumDevicesCallback(const DIDEVICEINSTANCE* instance,
                              "SetCooperativeLevel") ||
           !CheckDInputResult(device->Acquire(), "Acquire")) {
         device->Release();
-        return false;
+        return DIENUM_CONTINUE;
       }
-      devices->push_back(device);
+      context->devices->push_back(device);
     } else {
       device->Release();
     }
   }
-  directInput->Release();
   return DIENUM_CONTINUE;
 }
 
-}  // namespace di_common
+} // namespace di_common

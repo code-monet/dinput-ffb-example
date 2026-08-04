@@ -262,12 +262,12 @@ bool BuildEffectParameters(const std::string &effectName, DIEFFECT &effect,
                            int strengthPercentage) {
   std::string normalized = NormalizeEffectName(effectName);
 
-  static DIPERIODIC periodic;
-  static DICONSTANTFORCE constantForce;
-  static DIRAMPFORCE rampForce;
-  static DICONDITION condition;
-  static DWORD axes[1] = {DIJOFS_X};
-  static LONG direction[1] = {1};
+  thread_local static DIPERIODIC periodic;
+  thread_local static DICONSTANTFORCE constantForce;
+  thread_local static DIRAMPFORCE rampForce;
+  thread_local static DICONDITION condition;
+  thread_local static DWORD axes[1] = {DIJOFS_X};
+  thread_local static LONG direction[1] = {1};
 
   ZeroMemory(&effect, sizeof(effect));
   effect.dwSize = sizeof(DIEFFECT);
